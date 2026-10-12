@@ -1,0 +1,78 @@
+{
+  "run": "MV5B3PVS",
+  "part": "resume (E-C, F)",
+  "network": "studionet",
+  "chainId": 61999,
+  "contracts": {
+    "charterRegistry": "0x970CCfF9BA4749EB93508F802afc3c08D03e7AAe",
+    "massEngine": "0xecD45151074a14623d4a8eDC19fE592915b36886",
+    "capabilityGate": "0x19132D44C47cE39DE86faBD8dAb9cC72c75eE220",
+    "protectedTarget": "0xb9a64476961378485c4ba429f10Ce7990cdb313f",
+    "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
+  },
+  "generatedAt": "2026-10-12T14:14:25.430Z",
+  "unexpected": 1,
+  "steps": [
+    {
+      "step": "E-C1 incident already frozen by the interrupted run (verified on-chain)",
+      "pass": true,
+      "detail": "opened 2026-10-12T14:01:54.000Z"
+    },
+    {
+      "step": "E-C2 already assessed earlier; not re-assessing",
+      "pass": true,
+      "detail": "ASSESSMENT_RETRYABLE"
+    },
+    {
+      "step": "E-C3 earlier attempt → \"INSUFFICIENT_EVIDENCE\" and no capability",
+      "pass": true,
+      "detail": "status ASSESSMENT_RETRYABLE, attempt 1"
+    },
+    {
+      "step": "E-C2 assess incident (prompt-injection evidence)",
+      "method": "assess_incident",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0x847bff33815959fbf91e547aaf24acaf1fa4cca11945fe75fcd8d06f8e27ea87",
+      "pass": true
+    },
+    {
+      "step": "E-C3 prompt-injection evidence → \"INSUFFICIENT_EVIDENCE\" and no capability",
+      "pass": true,
+      "detail": "status ASSESSMENT_RETRYABLE"
+    },
+    {
+      "step": "E-C4 NOT EXERCISED: evidence host unavailable, tripwire not reached (incident stays retryable)",
+      "pass": false,
+      "detail": "HTTP 503 · decision INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "step": "F1-F2 charter v2 already published and active (verified on-chain)",
+      "pass": true,
+      "detail": "v2"
+    },
+    {
+      "step": "F3 rollback to v1 is rejected",
+      "method": "activate_charter",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "cannot roll back to an older charter version",
+      "hash": "0x00de0ee761f9ddf7e7fb290798a47d0932ce1322c72c180dfbc96d0b90b7a16b",
+      "pass": true
+    },
+    {
+      "step": "F4 new incidents cannot use the superseded charter",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "charter is not the active protocol charter",
+      "hash": "0xecf21913d3d840f0397468cecb460db30ac4e2bd2c39421212733d06d5f292d8",
+      "pass": true
+    },
+    {
+      "step": "F5 the already-frozen incident stays bound to the original v1 digest",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

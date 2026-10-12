@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.python312/
+.env
+.env.local
+.env.generated
+*.pyc
+__pycache__/
+.pytest_cache/
+test-results/
+playwright-report/
+deployment-manifest.generated.json
+*.key
+*.keystore.json
+*.tsbuildinfo
+.claude/
+next-env.d.ts

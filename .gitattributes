@@ -1,0 +1,4 @@
+# Contract bytes are verified against the chain by SHA-256: keep LF on every platform.
+* text=auto eol=lf
+*.png binary
+*.ico binary

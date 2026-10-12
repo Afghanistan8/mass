@@ -1,0 +1,1 @@
+Scheduled maintenance notice: the routine database upgrade completed with no security impact. Price movement stayed within normal ranges. There is no exploit and no dependency compromise.

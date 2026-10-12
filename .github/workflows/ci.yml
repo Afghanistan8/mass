@@ -1,0 +1,20 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv --python 3.12 .python312 && uv pip install --python .python312/bin/python -r requirements.txt
+      - run: npm ci
+      - run: npm run toolchain:check
+      - run: npm run contracts:check
+      - run: npm run test:unit
+      - run: npm run test:direct
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

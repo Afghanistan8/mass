@@ -1,0 +1,42 @@
+Mass live adversarial run MV5B3PVS · Studionet 61999 · governance 0x4184bc5e5444f250767e8d33a49817a9b4fb0df3
+
+== A. Unauthorized attempts (each must revert) ==
+PASS  A1 deployer cannot pause the target directly  [emergency_pause] reverted as expected (“emergency authority requires CapabilityGate”)  0xf486fa87df8acfb35ba1c12e93dab659e2f3c110f4a4e48e05c5bbafe9a01e23
+PASS  A2 deployer cannot mint a capability directly  [issue_capability] reverted as expected (“only bound MassEngine may issue capabilities”)  0x390c6c84fdcaf25aefa58af3e473389d0369122ff9a0bef855b2ab838ed9bf9f
+PASS  A3 gate engine binding is one-time  [bind_engine] reverted as expected (“engine already bound”)  0x46cec3d3f3d37c4ed387a016f245780c2f49ceb7e75460091fb09ac5c40dbbd5
+PASS  A4 ledger accepts writes only from the engine  [record_assessment] reverted as expected (“only bound MassEngine may record assessments”)  0x0c2e33855319911058bbdfeaaacbbc1d4732ba7e98e94a6786f6c742786f4bb7
+PASS  A5 cannot charter a target the publisher does not govern  [publish_charter] reverted as expected  0xdf0bffbb9c51f4d1c846599964069f4c4c20bc8635490aa73b5171475ee6e0d3
+PASS  A6 cannot open an incident on an unknown charter  [open_incident] reverted as expected (“charter not found”)  0xef20537879484964383e3a3940a4fbd0a8e5e454b3fa142fe836a5823b39ecea
+
+== B. Charter: publish → delay → activate ==
+PASS  B1 publish charter v1 (absent guardian and lanes passed as null)  [publish_charter] FINISHED_WITH_RETURN  0xbbea11feca44ff1442428c5c00d9c2276bbbef2b0a192fa328e3b9c973297ac5
+PASS  B2 activation before the delay elapses is rejected  [activate_charter] reverted as expected (“charter activation delay has not elapsed”)  0x27c3bf9e7ec0484a4871aa23bc0cf2ff05c4516ee0c0cc8fc2051f9527050eb6
+      waiting out the 1-minute activation delay…
+PASS  B3 activate charter v1  [activate_charter] FINISHED_WITH_RETURN  0x35b775f95034600f2664b57fdf72226e202515f2f0dad13595c9849373e6d08d
+PASS  B4 charter is active on the finalized chain
+
+== C. Freeze-time rejections ==
+PASS  C1 duration above the charter hard limit  [open_incident] reverted as expected (“requested duration exceeds charter hard limit”)  0xfb6c72107c5781f12df766eb4a507dbb6f4476fb27ba4d5478ac6d7e2ddcf5f6
+PASS  C2 lane that was never chartered  [open_incident] reverted as expected (“lane is outside charter scope”)  0x13a015696333770bedd4b6417afe53148939e59e9f92c0202e0a4c2bfe396d68
+PASS  C3 evidence host outside the approved scope  [open_incident] reverted as expected (“evidence URL is outside the charter evidence scope”)  0x92d5a4815ef0f11865bbfbc250d0d85f9f3d7cc61c9bdf46734cad4864a8c9bb
+PASS  C4 dot-segment path traversal in evidence URL  [open_incident] reverted as expected (“evidence URL contains a dot path segment”)  0xd1c6915bb3d2d7568cb910d86b95e6064da3725213d2ede800fb0c2d7c008775
+
+== D. Incident → consensus → finality → capability → execution ==
+PASS  D1 freeze incident A (absent scope passed as null, defaults to *)  [open_incident] FINISHED_WITH_RETURN  0x16ab9fcbf16ad6737ccc1c2afa063a3c5aaa10ab1cbc32d437b0f65fa392a83c
+PASS  D2 assess incident A (leader + validators over live web evidence)  [assess_incident] FINISHED_WITH_RETURN  0x30189dfc9889c4b9f4aca0bfbe3ba8e44899454841f4387374e406293e4d7d1b
+      decision: TRIGGER_CONFIRMED
+      summary:  The approved evidence source at httpbin.org/base64/ returns a security advisory confirming an active exploit of the Mass demo bridge contract, with funds being drained through a critical dependency compromise threatening asset safety. This satisfies the charter trigger policy. The requested action (PAUSE_PROTECTED_ACTION) is listed in allowed_actions, the requested duration (20 minutes) is within the 60-minute maximum, and the scope (*) is consistent with the nature of an active drain exploit. The operator assertion was not used as evidence.
+      source:   SUPPORTS_TRIGGER HTTP 200 quote=“Confirmed active exploit of the Mass demo bridge contract: funds are being drained through a critical dependency compromise, and asset safety is threatened.”
+PASS  D3 assessment reached FINALIZED with a recorded decision  — TRIGGER_CONFIRMED
+PASS  D4 capability exists only after finality and is bound to the frozen envelope  — CAP-INC-A-MV5B3PVS cb29725bb741…
+PASS  D5 holder executes the capability  [execute_capability] FINISHED_WITH_RETURN  0x2b0b6c4ae1c73b2d365e44c9f83ad3fad9723b67888690b5acadd1ce83f611cc
+PASS  D6 target is paused by the finalized, gate-delivered capability  — until 2026-10-12T13:57:14.000Z
+PASS  D7 protected action is rejected while paused  [execute_protected_action] reverted as expected (“protected action is temporarily paused”)  0x3340a9a9342549d0a8bcd1fbdb907b13212c1699f3e86420bf57c8534573350b
+PASS  D8 reconcile marks the capability applied  [reconcile_capability] FINISHED_WITH_RETURN  0x5c61294634536096db94acc1a5119c61a24aefdfbfc31eddf6d07a17978208f7
+PASS  D9 replaying the spent capability is rejected  [execute_capability] reverted as expected (“capability already applied”)  0x0e83efd5b64ee7f43466de64dc22a700c19901d76a7ff2bb9d17ad68de1c4b4f
+PASS  D10 finalized evidence ledger holds the per-source commitments  — 91bf11bf7918c1ba…
+
+== E. Hostile and weak evidence must never yield authority ==
+PASS  E-B1 freeze incident (routine-maintenance evidence)  [open_incident] FINISHED_WITH_RETURN  0x1865e7d22de80876bb8e867b9098c5de80f30f0fc3ce9920d7c93e2cf54a58e5
+PASS  E-B2 assess incident (routine-maintenance evidence)  [assess_incident] FINISHED_WITH_RETURN  0xb0659eb2b54566840807baf329c689c03366269eebb02afd0ecbe8d85cb53669
+PASS  E-B3 routine-maintenance evidence → "TRIGGER_NOT_CONFIRMED" and no capability  — status ASSESSED_NO_AUTHORITY

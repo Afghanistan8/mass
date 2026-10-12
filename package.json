@@ -1,0 +1,40 @@
+{
+  "name": "mass",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "node scripts/py.mjs -m pytest tests/unit -q",
+    "test:direct": "node scripts/py.mjs -m pytest tests/direct -q",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit && npm run test:direct",
+    "contracts:compile": "node scripts/check-contracts.mjs --compile-only",
+    "contracts:check": "node scripts/check-contracts.mjs",
+    "toolchain:check": "node scripts/toolchain-check.mjs",
+    "deploy:studionet": "npx --no-install genlayer deploy",
+    "source:verify": "node scripts/verify-deployed-source.mjs",
+    "health:check": "node scripts/check-deployment-health.mjs"
+  },
+  "dependencies": {
+    "genlayer-js": "1.1.8",
+    "next": "16.3.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.1.11",
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.3",
+    "@types/react-dom": "19.0.2",
+    "genlayer": "0.39.1",
+    "postcss": "8.5.6",
+    "tailwindcss": "4.1.11",
+    "typescript": "5.7.2"
+  },
+  "engines": { "node": ">=20" }
+}

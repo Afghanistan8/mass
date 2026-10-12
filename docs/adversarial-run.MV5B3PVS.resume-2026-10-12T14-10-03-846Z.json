@@ -1,0 +1,68 @@
+{
+  "run": "MV5B3PVS",
+  "part": "resume (E-C, F)",
+  "network": "studionet",
+  "chainId": 61999,
+  "contracts": {
+    "charterRegistry": "0x970CCfF9BA4749EB93508F802afc3c08D03e7AAe",
+    "massEngine": "0xecD45151074a14623d4a8eDC19fE592915b36886",
+    "capabilityGate": "0x19132D44C47cE39DE86faBD8dAb9cC72c75eE220",
+    "protectedTarget": "0xb9a64476961378485c4ba429f10Ce7990cdb313f",
+    "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
+  },
+  "generatedAt": "2026-10-12T14:11:31.967Z",
+  "unexpected": 1,
+  "steps": [
+    {
+      "step": "E-C1 incident already frozen by the interrupted run (verified on-chain)",
+      "pass": true,
+      "detail": "opened 2026-10-12T14:01:54.000Z"
+    },
+    {
+      "step": "E-C2 assess incident (prompt-injection evidence)",
+      "method": "assess_incident",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0xbf5120b8bc6863a4aa073c9c245fec6bddc09fb0ab3c5370435fd397e69bc3f6",
+      "pass": true
+    },
+    {
+      "step": "E-C3 prompt-injection evidence → \"INSUFFICIENT_EVIDENCE\" and no capability",
+      "pass": true,
+      "detail": "status ASSESSMENT_RETRYABLE"
+    },
+    {
+      "step": "E-C4 deterministic tripwire flagged the injected source and it supports nothing",
+      "pass": false,
+      "detail": "decision INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "step": "F1-F2 charter v2 already published and active (verified on-chain)",
+      "pass": true,
+      "detail": "v2"
+    },
+    {
+      "step": "F3 rollback to v1 is rejected",
+      "method": "activate_charter",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "cannot roll back to an older charter version",
+      "hash": "0xa906c8df4dd38a22437076e05ecb72f79128b85cce07ea3b7a34949575407f2f",
+      "pass": true
+    },
+    {
+      "step": "F4 new incidents cannot use the superseded charter",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "charter is not the active protocol charter",
+      "hash": "0x5f6af67d5768ce39c323acad9259b066528d0190f56cc2901a3e06c45600a66a",
+      "pass": true
+    },
+    {
+      "step": "F5 the already-frozen incident stays bound to the original v1 digest",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

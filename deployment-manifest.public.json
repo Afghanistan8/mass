@@ -1,0 +1,77 @@
+{
+  "project": "Mass",
+  "network": "studionet",
+  "chainId": 61999,
+  "rpc": "https://studio.genlayer.com/api",
+  "explorer": "https://explorer-studio.genlayer.com",
+  "deployer": "0x4184bc5E5444F250767E8D33A49817A9B4FB0df3",
+  "genvmRunner": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "contracts": {
+    "charterRegistry": "0x970CCfF9BA4749EB93508F802afc3c08D03e7AAe",
+    "massEngine": "0xecD45151074a14623d4a8eDC19fE592915b36886",
+    "capabilityGate": "0x19132D44C47cE39DE86faBD8dAb9cC72c75eE220",
+    "protectedTarget": "0xb9a64476961378485c4ba429f10Ce7990cdb313f",
+    "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
+  },
+  "sources": {
+    "charterRegistry": {
+      "path": "contracts/charter_registry.py",
+      "sha256": "0b0a6ff4d58270f0f54dc7a179167be15ddf372938aa1222a8059a43dd4d4692"
+    },
+    "massEngine": {
+      "path": "contracts/mass_engine.py",
+      "sha256": "ba86e80a01baa4258348f1ce870fca87775e7f4172cf8111c527ef2dfc0c584a"
+    },
+    "capabilityGate": {
+      "path": "contracts/capability_gate.py",
+      "sha256": "21449014bb032abc71d70348c217262cf444e1d79e78982533af462a0ad85c06"
+    },
+    "protectedTarget": {
+      "path": "contracts/protected_target.py",
+      "sha256": "469861bc6417c1580d5ed72ab7b80bc7b70a69e3dea371aa6eba59de4150c4a9"
+    },
+    "evidenceLedger": {
+      "path": "contracts/evidence_ledger.py",
+      "sha256": "51cbb8aca8429b370a59edb97384d5cbc0a846c1f0f0aa5099e1858a13f8436f"
+    }
+  },
+  "deploymentTransactions": {
+    "evidenceLedger": "0x76bb9cd6c7716cb7187f71aeec711c7a97c630050f63c72cfda6b49d6a2aa4a5",
+    "capabilityGate": "0x62c4d6ef5aab68e871272d7d59c6719be237ae5b2e17e2f9d5e13fc166f8df12",
+    "charterRegistry": "0xf1bffe5fbd919748eaf3ec3051a196e4ac8474e2bf1b02cee594c7e022b3702b",
+    "massEngine": "0x80d183dc4d620ada0504a8440d6d75c1ddbd5def664e3b6c6fdd2a7d25ed777a",
+    "protectedTarget": "0x9e48325dad20e49ad793c8087045252bd9f8e66fd584a4582147c36f2e99b98b"
+  },
+  "bindTransactions": {
+    "gateBindEngine": "0x7a0b931f25297ca479a9dd14ed114472aab911f48eb8942583d1987f35a87540",
+    "ledgerBindEngine": "0xc871e13f609b24077f7d731406da2a1def33b1de03f476aab93179803fa6f9d7"
+  },
+  "repositoryCommit": "uncommitted",
+  "generatedAt": "2026-10-12T13:25:49.605Z",
+  "status": "DEPLOYED",
+  "frontend": {
+    "sourceCommit": ""
+  },
+  "supersededDeployments": [
+    {
+      "reason": "first deployment predates the CLI empty-argument (b\"\") hardening found during the live run; do not use",
+      "contracts": {
+        "charterRegistry": "0xddc87496055b1777499346173107d37ae2C0AE28",
+        "massEngine": "0x0B60b320066DD972547a6C233e67b99dFf522D04",
+        "capabilityGate": "0x0f2bCF7497D73AAd9611ad806479fa094cA34E48",
+        "protectedTarget": "0x70723A681D44Ee1D245d01f7622998edb31E729b",
+        "evidenceLedger": "0x80E5f7A20C18Ccb2E9cFBbEc554077A2018e40cb"
+      }
+    },
+    {
+      "reason": "second deployment: engine nondet helpers were class methods (closures captured the contract instance); refactored to module level",
+      "contracts": {
+        "charterRegistry": "0xf23CdC2325F12bf1bAba90Aeed8Cf94a7Bf05457",
+        "massEngine": "0xb6f5ec1a98d09332F5554fe51FD351615922cf67",
+        "capabilityGate": "0xdE892B06B6cd2041Cd5547666CA0b72E32805722",
+        "protectedTarget": "0xF952FdfCed40D4B9EaDF35cEd0a9AfAdEc3e0C96",
+        "evidenceLedger": "0x11bDaC2E13913C0d180c3096ca1449e32A25B414"
+      }
+    }
+  ]
+}
