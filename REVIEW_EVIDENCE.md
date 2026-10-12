@@ -31,7 +31,7 @@ The full invariant → enforcement → test table, with live step references, is
 | Layer | Count | Notes |
 |---|---|---|
 | Unit (`tests/unit`) | 41 | Source-level invariants, pins, forbidden deps, UI↔engine decision-set equality, manifest-hash drift, CI gates |
-| Direct Mode (`tests/direct`) | 86 | Every negative path per contract, cross-contract governance, finality emission, replay, digest mismatch, host rejection, validator disagreement |
+| Direct Mode (`tests/direct`) | 91 | Every negative path per contract, cross-contract governance, finality emission, replay, digest mismatch, host rejection, validator disagreement |
 | Browser E2E (`tests/e2e`) | 22 | Stub EIP-1193 wallet + dev-only data seam; happy path and adversarial UI paths |
 | Live Studionet | `scripts/adversarial-run.mjs` | ~45 steps; transaction hashes recorded |
 

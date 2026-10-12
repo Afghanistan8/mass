@@ -7,11 +7,11 @@
   "deployer": "0x4184bc5E5444F250767E8D33A49817A9B4FB0df3",
   "genvmRunner": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
   "contracts": {
-    "charterRegistry": "0x970CCfF9BA4749EB93508F802afc3c08D03e7AAe",
-    "massEngine": "0xecD45151074a14623d4a8eDC19fE592915b36886",
-    "capabilityGate": "0x19132D44C47cE39DE86faBD8dAb9cC72c75eE220",
-    "protectedTarget": "0xb9a64476961378485c4ba429f10Ce7990cdb313f",
-    "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
+    "charterRegistry": "0xfC8EaFe8a95Fa24a8b96531322db2D0B960c4386",
+    "massEngine": "0xfa40EE2856151d8193cf1e1bB93EB2cDA34A269b",
+    "capabilityGate": "0xF4Abb78B911505F762eB4C331577032CF0ae6C54",
+    "protectedTarget": "0x19d36019F8906d5F9c3de6E7d44453AD5164D04E",
+    "evidenceLedger": "0xD3aaaA0e85c2E5E7bB52ff40400D8f85D9A2B63F"
   },
   "sources": {
     "charterRegistry": {
@@ -20,7 +20,7 @@
     },
     "massEngine": {
       "path": "contracts/mass_engine.py",
-      "sha256": "ba86e80a01baa4258348f1ce870fca87775e7f4172cf8111c527ef2dfc0c584a"
+      "sha256": "582d2f922208663c1a7a46103556f17f4f3677e27c0ca8c4fe6a7b832d77cc86"
     },
     "capabilityGate": {
       "path": "contracts/capability_gate.py",
@@ -36,18 +36,18 @@
     }
   },
   "deploymentTransactions": {
-    "evidenceLedger": "0x76bb9cd6c7716cb7187f71aeec711c7a97c630050f63c72cfda6b49d6a2aa4a5",
-    "capabilityGate": "0x62c4d6ef5aab68e871272d7d59c6719be237ae5b2e17e2f9d5e13fc166f8df12",
-    "charterRegistry": "0xf1bffe5fbd919748eaf3ec3051a196e4ac8474e2bf1b02cee594c7e022b3702b",
-    "massEngine": "0x80d183dc4d620ada0504a8440d6d75c1ddbd5def664e3b6c6fdd2a7d25ed777a",
-    "protectedTarget": "0x9e48325dad20e49ad793c8087045252bd9f8e66fd584a4582147c36f2e99b98b"
+    "evidenceLedger": "0x9d518ee2e50c2f8267f93192b1db63d36065a4aa211f35c55ba46a31455649cd",
+    "capabilityGate": "0xfa5398ed59465131e5922f9e58809ef3456275e6ab4c0c34c91d9cdb4df1385b",
+    "charterRegistry": "0xaee8933e9838f8530821437eceafc3511220d29a8a817df08819a8bcbcd5beac",
+    "massEngine": "0xd746814198e13f481aef30e04c71f4284fd329e6229d4258f76e9a61767429a6",
+    "protectedTarget": "0x9a2acca2fe8ebc23e94dd96cf3c184a823f1a367a434b7c7d28035b4927a5f00"
   },
   "bindTransactions": {
-    "gateBindEngine": "0x7a0b931f25297ca479a9dd14ed114472aab911f48eb8942583d1987f35a87540",
-    "ledgerBindEngine": "0xc871e13f609b24077f7d731406da2a1def33b1de03f476aab93179803fa6f9d7"
+    "gateBindEngine": "0xe0a18ff080d06964ae47a30455954915948fdf56f398ebe51f3876ab2de84b7f",
+    "ledgerBindEngine": "0x7a4f817a16d2536edcce9f012977e5a06ae74b12eeb27e7ea51b6ce8b2dc0e3a"
   },
-  "repositoryCommit": "uncommitted",
-  "generatedAt": "2026-10-12T13:25:49.605Z",
+  "repositoryCommit": "f8500fb042201c01830cf7dacc81367c4ae3b0b9",
+  "generatedAt": "2026-10-12T14:47:11.836Z",
   "status": "DEPLOYED",
   "frontend": {
     "sourceCommit": ""
@@ -71,6 +71,16 @@
         "capabilityGate": "0xdE892B06B6cd2041Cd5547666CA0b72E32805722",
         "protectedTarget": "0xF952FdfCed40D4B9EaDF35cEd0a9AfAdEc3e0C96",
         "evidenceLedger": "0x11bDaC2E13913C0d180c3096ca1449e32A25B414"
+      }
+    },
+    {
+      "reason": "third deployment: tripwire hits were only forced to SOURCE_TAMPERING_SUSPECTED when the model said TRIGGER_CONFIRMED, so validators running different models diverged (MAJORITY_DISAGREE in live run MV5CCPP0)",
+      "contracts": {
+        "charterRegistry": "0x970CCfF9BA4749EB93508F802afc3c08D03e7AAe",
+        "massEngine": "0xecD45151074a14623d4a8eDC19fE592915b36886",
+        "capabilityGate": "0x19132D44C47cE39DE86faBD8dAb9cC72c75eE220",
+        "protectedTarget": "0xb9a64476961378485c4ba429f10Ce7990cdb313f",
+        "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
       }
     }
   ]

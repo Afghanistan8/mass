@@ -143,7 +143,11 @@ def test_engine_validator_is_substantive_not_rubber_stamp():
                    "leader_states != own_states", "leader_ok != own_ok", "_clause_grounded", "own_norm",
                    "strict validator comparing two independent", "comparison.get(\"equivalent\") is True"):
         assert needle in validator, needle
-    assert "return True" not in validator.replace('return isinstance(comparison, dict) and comparison.get("equivalent") is True', "")
+    # Exactly one early accept exists, and only behind the validator's OWN tripwire and a non-granting outcome.
+    assert validator.count("return True") == 1
+    guard, _, _ = validator.partition("return True")
+    assert guard.rstrip().endswith('if own["decision"] == "SOURCE_TAMPERING_SUSPECTED" and any(s["injection_flagged"] for s in own["source_states"]):')
+    assert guard.index("leader_states != own_states") < guard.index("SOURCE_TAMPERING_SUSPECTED")
 
 
 def test_engine_prompt_treats_all_inputs_as_untrusted_data():

@@ -297,10 +297,10 @@ def _enforce(assessment: dict, fetched: list, charter: dict) -> dict:
             state["quote"] = ""
             continue
         if state["injection_flagged"]:
+            # Fully code-determined so every validator computes the same state whatever its model said.
             tampering = True
-            if state["state"] in ("SUPPORTS_TRIGGER", "CONTRADICTS_TRIGGER"):
-                state["state"] = "NEUTRAL"
-                state["finding"] = "Source matched a prompt-injection tripwire and was excluded."
+            state["state"] = "NEUTRAL"
+            state["finding"] = "Source matched a prompt-injection tripwire and was excluded."
             state["quote"] = ""
             continue
         if state["state"] == "SUPPORTS_TRIGGER":
@@ -312,13 +312,17 @@ def _enforce(assessment: dict, fetched: list, charter: dict) -> dict:
         elif state["state"] != "CONTRADICTS_TRIGGER":
             state["quote"] = ""
 
+    if tampering:
+        # A tripped source compromises the whole evidence set. The outcome is decided here, never by the
+        # model: otherwise validators running different models diverge (observed live as MAJORITY_DISAGREE).
+        assessment["decision"] = "SOURCE_TAMPERING_SUSPECTED"
+        return assessment
+
     if assessment["decision"] == "TRIGGER_CONFIRMED":
         assessment["trigger_clauses"] = [c for c in assessment["trigger_clauses"] if _clause_grounded(c, policy)]
         supports = [s for s in assessment["source_states"] if s["state"] == "SUPPORTS_TRIGGER"]
         contradicts = [s for s in assessment["source_states"] if s["state"] == "CONTRADICTS_TRIGGER"]
-        if tampering:
-            assessment["decision"] = "SOURCE_TAMPERING_SUSPECTED"
-        elif contradicts and supports:
+        if contradicts and supports:
             assessment["decision"] = "CONFLICTING_EVIDENCE"
         elif not supports or not assessment["trigger_clauses"] or not assessment["material_findings"]:
             assessment["decision"] = "INSUFFICIENT_EVIDENCE"
@@ -585,6 +589,11 @@ class MassEngine(gl.Contract):
             own_ok = {s["url"]: 200 <= s["http_status"] < 300 for s in own["source_states"]}
             if leader_ok != own_ok:
                 return False
+
+            # Tripwire outcome: this validator's own fetch tripped, its code forced the same decision and
+            # states, and the result grants nothing. No free-text comparison can change that.
+            if own["decision"] == "SOURCE_TAMPERING_SUSPECTED" and any(s["injection_flagged"] for s in own["source_states"]):
+                return True
 
             if leader["decision"] == "TRIGGER_CONFIRMED":
                 policy = str(charter.get("trigger_policy", ""))

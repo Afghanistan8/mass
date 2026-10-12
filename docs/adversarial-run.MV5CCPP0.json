@@ -1,0 +1,287 @@
+{
+  "run": "MV5CCPP0",
+  "part": "full",
+  "network": "studionet",
+  "chainId": 61999,
+  "contracts": {
+    "charterRegistry": "0x970CCfF9BA4749EB93508F802afc3c08D03e7AAe",
+    "massEngine": "0xecD45151074a14623d4a8eDC19fE592915b36886",
+    "capabilityGate": "0x19132D44C47cE39DE86faBD8dAb9cC72c75eE220",
+    "protectedTarget": "0xb9a64476961378485c4ba429f10Ce7990cdb313f",
+    "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
+  },
+  "generatedAt": "2026-10-12T14:39:20.588Z",
+  "unexpected": 1,
+  "steps": [
+    {
+      "step": "A1 deployer cannot pause the target directly",
+      "method": "emergency_pause",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "emergency authority requires CapabilityGate",
+      "hash": "0x05607755d7984668b41d8c0b95b89ab268aa2aca7fc9d9f348b863fcd7323056",
+      "pass": true
+    },
+    {
+      "step": "A2 deployer cannot mint a capability directly",
+      "method": "issue_capability",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "only bound MassEngine may issue capabilities",
+      "hash": "0x5b18acb6df1b8b5ce3deaee8884c1584c534a93bb1bdabc77a4d9492f8942630",
+      "pass": true
+    },
+    {
+      "step": "A3 gate engine binding is one-time",
+      "method": "bind_engine",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "engine already bound",
+      "hash": "0xa94b6889bb359627e48f7c332216f60df8980b8335e5f51029aae333226f0943",
+      "pass": true
+    },
+    {
+      "step": "A4 ledger accepts writes only from the engine",
+      "method": "record_assessment",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "only bound MassEngine may record assessments",
+      "hash": "0x291a9a3b77957e65cf7c843d447eec768e79ecb1c8d4d681f4fa6e5d48320f17",
+      "pass": true
+    },
+    {
+      "step": "A5 cannot charter a target the publisher does not govern",
+      "method": "publish_charter",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "hash": "0xab192e41133d94dd582c6d9d081395e2445bc7880e4a2a035afcad03838bbffc",
+      "pass": true
+    },
+    {
+      "step": "A6 cannot open an incident on an unknown charter",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "charter not found",
+      "hash": "0x5eb4fffefe43e19681773bb84b93ce79641d184244491d73538af84a7ed14486",
+      "pass": true
+    },
+    {
+      "step": "B1 publish charter v1 (absent guardian and lanes passed as null)",
+      "method": "publish_charter",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0x09443ad5e71b902398274901b82692fa048ba22b0faada0b2d632599c6df473d",
+      "pass": true
+    },
+    {
+      "step": "B2 activation before the delay elapses is rejected",
+      "method": "activate_charter",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "charter activation delay has not elapsed",
+      "hash": "0xb210195beaedf8929ce61d0f5554e9bc21ee53518a800f9db24853c05bac8785",
+      "pass": true
+    },
+    {
+      "step": "B3 activate charter v1",
+      "method": "activate_charter",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0x0b4d45a859b3ce25ad6dc72467d70d7f9b485e6d77f94a3a4cc8ae5d9a34faf8",
+      "pass": true
+    },
+    {
+      "step": "B4 charter is active on the finalized chain",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "step": "C1 duration above the charter hard limit",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "requested duration exceeds charter hard limit",
+      "hash": "0x88bd1d4c43f24ea37e5ddb145a80e50262c1dab815926869e60d79780a455c94",
+      "pass": true
+    },
+    {
+      "step": "C2 lane that was never chartered",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "lane is outside charter scope",
+      "hash": "0x78c143ecdcd3d46a8f23b3265b54106f6941127e725973e4d3de644afd6ce3cf",
+      "pass": true
+    },
+    {
+      "step": "C3 evidence host outside the approved scope",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "evidence URL is outside the charter evidence scope",
+      "hash": "0x8e890fe65d26544c734a348b6ccbe53ec088c26ae08a06a89a1d603a8ee416fe",
+      "pass": true
+    },
+    {
+      "step": "C4 dot-segment path traversal in evidence URL",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "evidence URL contains a dot path segment",
+      "hash": "0x8b5da8a6f815fff86bb488ffa60e253c790e3cd0050446d8eef4fd2f9868feaa",
+      "pass": true
+    },
+    {
+      "step": "D1 freeze incident A (absent scope passed as null, defaults to *)",
+      "method": "open_incident",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0x058f0988b955c024b5656157ebc0dd5046d14e11d691b6fdaa6abca631c4fe74",
+      "pass": true
+    },
+    {
+      "step": "D2 assess incident A (leader + validators over live web evidence)",
+      "method": "assess_incident",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0x300ea8d44cfc455f2986fa2fedb0f6c98c52e7cd4ca0798e174634f0475e17fb",
+      "pass": true
+    },
+    {
+      "step": "D3 assessment reached FINALIZED with a recorded decision",
+      "pass": true,
+      "detail": "TRIGGER_CONFIRMED"
+    },
+    {
+      "step": "D4 capability exists only after finality and is bound to the frozen envelope",
+      "pass": true,
+      "detail": "CAP-INC-A-MV5CCPP0 69a9c80c76e5…"
+    },
+    {
+      "step": "D5 holder executes the capability",
+      "method": "execute_capability",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0x8313806db5b73a5922e8f8d51adc375beba6499073db112fdb229393ee2df33d",
+      "pass": true
+    },
+    {
+      "step": "D6 target applied THIS capability (history + digest) and is paused",
+      "pass": true,
+      "detail": "CAP-INC-A-MV5CCPP0 until 2026-10-12T14:49:15.000Z"
+    },
+    {
+      "step": "D7 protected action is rejected while paused",
+      "method": "execute_protected_action",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "protected action is temporarily paused",
+      "hash": "0x5224f18e6305893ed291067fcd8035c5d9df69c56eb14b18fc158940376925e3",
+      "pass": true
+    },
+    {
+      "step": "D8 reconcile marks the capability applied",
+      "method": "reconcile_capability",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0xc6ecd6fe4b2243f38c7a58c7c683d05aa5830565cc5ba0480971218822db8a26",
+      "pass": true
+    },
+    {
+      "step": "D9 replaying the spent capability is rejected",
+      "method": "execute_capability",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "capability already applied",
+      "hash": "0x39683beb8f89d6e8b0bc7f32976e5622e75f07953fb3f2e5f5174ec4160291e2",
+      "pass": true
+    },
+    {
+      "step": "D10 finalized evidence ledger holds the per-source commitments",
+      "pass": true,
+      "detail": "439b4f718cb119d9…"
+    },
+    {
+      "step": "E-B1 freeze incident (routine-maintenance evidence)",
+      "method": "open_incident",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0xce1d51d26bf9a6fa0e7ce3023306f69ad57872fea8165709f0916ab9f01f1773",
+      "pass": true
+    },
+    {
+      "step": "E-B2 assess incident (routine-maintenance evidence)",
+      "method": "assess_incident",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0xc756bb336a19b7de48f6e1396df93b134d6d20490a7c22821fec4e1a5111a621",
+      "pass": true
+    },
+    {
+      "step": "E-B3 routine-maintenance evidence → \"TRIGGER_NOT_CONFIRMED\" and no capability",
+      "pass": true,
+      "detail": "status ASSESSED_NO_AUTHORITY"
+    },
+    {
+      "step": "E-C1 freeze incident (prompt-injection evidence)",
+      "method": "open_incident",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0x98fdb2063ec786370a656b42a3552bc317b5380a7ca8d970326f89fe67c5bee2",
+      "pass": true
+    },
+    {
+      "step": "E-C2 assess incident (prompt-injection evidence)",
+      "method": "assess_incident",
+      "expect": "ok",
+      "result": "CONSENSUS_FAILED(MAJORITY_DISAGREE)",
+      "hash": "0xc311c396eea6c06766c037c9318cff1bd2aa82c526fde2a8c4e16ce0abcc847d",
+      "pass": false
+    },
+    {
+      "step": "E-C3 prompt-injection evidence → consensus produced no result; no capability",
+      "pass": true,
+      "detail": "status OPEN"
+    },
+    {
+      "step": "F1 publish charter v2 under the same protocol key",
+      "method": "publish_charter",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0xdc3a3ac131a46f614f7ebf58d133f333464de7b0d651208ca76aa5a8eafcff78",
+      "pass": true
+    },
+    {
+      "step": "F2 activate charter v2",
+      "method": "activate_charter",
+      "expect": "ok",
+      "result": "FINISHED_WITH_RETURN",
+      "hash": "0xc3674a486872024038db9ab1efd4a954909294c3319091c7673b9bb9dfbf6cc0",
+      "pass": true
+    },
+    {
+      "step": "F3 rollback to v1 is rejected",
+      "method": "activate_charter",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "cannot roll back to an older charter version",
+      "hash": "0x28b5d85e6cc3814c3432dd29272b304b6ea5cd3f748b2a3ccd56a0a967091536",
+      "pass": true
+    },
+    {
+      "step": "F4 new incidents cannot use the superseded charter",
+      "method": "open_incident",
+      "expect": "revert",
+      "result": "FINISHED_WITH_ERROR",
+      "matchedMessage": "charter is not the active protocol charter",
+      "hash": "0x02d61d718915f723ac89f1a4a0961faa00f8a0a74209bab6ba268ccc42d88c80",
+      "pass": true
+    },
+    {
+      "step": "F5 the already-frozen incident stays bound to the original v1 digest",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}
