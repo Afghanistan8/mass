@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ACTION_CLASSES, ADDRESSES } from "@/lib/config";
-import { Field, Notice, PageIntro, Panel } from "@/components/ui";
+import { Field, Notice, PageIntro, Panel, adoptPrehydrationValues } from "@/components/ui";
 import { TxStatus, useTx } from "@/components/tx";
 import { useWallet } from "@/components/WalletProvider";
 
@@ -25,6 +25,8 @@ export default function NewCharter() {
   const [submitted, setSubmitted] = useState(false);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const tx = useTx();
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => { setF((s) => ({ ...s, ...adoptPrehydrationValues(formRef.current, s) })); }, []);
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
@@ -65,7 +67,7 @@ export default function NewCharter() {
       </PageIntro>
       <Notice tone="pending" title="What publishing does not do">It grants no authority. A charter becomes usable only after its activation delay, and only its owner can activate it.</Notice>
 
-      <form className="grid gap-5 lg:grid-cols-2" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label="Publish charter">
+      <form ref={formRef} className="grid gap-5 lg:grid-cols-2" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label="Publish charter">
         <Panel eyebrow="Identity" title="Protocol & target">
           <div className="space-y-4">
             <Field label="Charter key" hint="Unique, permanent." error={show("charterKey")}><input className="field" aria-invalid={!!show("charterKey")} value={f.charterKey} onChange={(e) => set("charterKey", e.target.value)} name="charterKey" /></Field>
@@ -93,15 +95,15 @@ export default function NewCharter() {
           <div className="space-y-4">
             <fieldset className="space-y-2">
               <legend className="eyebrow">Action classes</legend>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.pause} onChange={(e) => set("pause", e.target.checked)} /> <span className="mono">PAUSE_PROTECTED_ACTION</span></label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.quarantine} onChange={(e) => set("quarantine", e.target.checked)} /> <span className="mono">QUARANTINE_LANE</span></label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="pause" checked={f.pause} onChange={(e) => set("pause", e.target.checked)} /> <span className="mono">PAUSE_PROTECTED_ACTION</span></label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="quarantine" checked={f.quarantine} onChange={(e) => set("quarantine", e.target.checked)} /> <span className="mono">QUARANTINE_LANE</span></label>
               {show("actions") && <span role="alert" className="text-xs text-rejected">{errors.actions}</span>}
             </fieldset>
             <Field label="Chartered lanes" hint="Comma-separated lane ids, e.g. swaps,bridge" error={show("lanes")}><input className="field" value={f.lanes} onChange={(e) => set("lanes", e.target.value)} name="lanes" /></Field>
             <div className="grid grid-cols-3 gap-3">
-              <Field label="Max minutes" error={show("maxMinutes")}><input className="field" type="number" value={f.maxMinutes} onChange={(e) => set("maxMinutes", Number(e.target.value))} /></Field>
-              <Field label="Cap TTL min" error={show("ttl")}><input className="field" type="number" value={f.ttl} onChange={(e) => set("ttl", Number(e.target.value))} /></Field>
-              <Field label="Delay min" error={show("delay")}><input className="field" type="number" value={f.delay} onChange={(e) => set("delay", Number(e.target.value))} /></Field>
+              <Field label="Max minutes" error={show("maxMinutes")}><input className="field" name="maxMinutes" type="number" value={f.maxMinutes} onChange={(e) => set("maxMinutes", Number(e.target.value))} /></Field>
+              <Field label="Cap TTL min" error={show("ttl")}><input className="field" name="ttl" type="number" value={f.ttl} onChange={(e) => set("ttl", Number(e.target.value))} /></Field>
+              <Field label="Delay min" error={show("delay")}><input className="field" name="delay" type="number" value={f.delay} onChange={(e) => set("delay", Number(e.target.value))} /></Field>
             </div>
           </div>
         </Panel>

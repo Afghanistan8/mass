@@ -40,6 +40,20 @@ export const INCIDENT_STATUS: Record<string, { label: string; tone: Tone }> = {
   ASSESSED_NO_AUTHORITY: { label: "Closed · no authority", tone: "rejected" },
 };
 
+/**
+ * The engine stores AUTHORITY_PENDING_FINALITY for good (it cannot observe the gate finalizing), so showing it
+ * literally is wrong once the capability exists. Derive the truthful state from the capability.
+ */
+export function incidentDisplay(status: string, capability?: { dispatch_status: string } | null): { label: string; tone: Tone; pulse: boolean } {
+  if (status === "AUTHORITY_PENDING_FINALITY" && capability) {
+    if (capability.dispatch_status === "APPLIED") return { label: "Capability applied · spent", tone: "neutral", pulse: false };
+    if (capability.dispatch_status === "DISPATCHED") return { label: "Capability dispatched · awaiting finality", tone: "pending", pulse: true };
+    return { label: "Capability issued · unused", tone: "verified", pulse: false };
+  }
+  const base = INCIDENT_STATUS[status] ?? { label: status, tone: "neutral" as Tone };
+  return { ...base, pulse: base.tone === "pending" };
+}
+
 export const SOURCE_STATE: Record<string, { label: string; tone: Tone }> = {
   SUPPORTS_TRIGGER: { label: "Supports trigger", tone: "verified" },
   CONTRADICTS_TRIGGER: { label: "Contradicts trigger", tone: "rejected" },

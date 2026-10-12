@@ -23,7 +23,7 @@ export default function Landing() {
       <section className="max-w-4xl">
         <p className="eyebrow">Emergency control room · GenLayer Studionet</p>
         <h1 className="display mt-4 text-5xl leading-[1.02] sm:text-7xl">
-          Emergency power<br />that cannot <em className="not-italic text-verified">self-certify.</em>
+          Emergency power<br />that cannot <em className="not-italic whitespace-nowrap text-verified">self-certify.</em>
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-dim">
           A protocol commits its emergency charter in advance. When an incident is declared, independent GenLayer validators read only the approved evidence and decide against the frozen policy. Authority exists only after that decision is final, and then only as one exact, single-use, expiring capability.

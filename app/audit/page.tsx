@@ -4,19 +4,26 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getLatestLedgerRecord, listAudit, listLedgerKeys, getLedgerRecord, verifyCommitment } from "@/lib/contracts";
 import { DECISIONS, formatTime, shortHex } from "@/lib/policy";
-import { Field, Notice, PageIntro, Panel, Pill, usePoll } from "@/components/ui";
+import { Field, Notice, PageIntro, Panel, Pill, StaleNotice, usePoll } from "@/components/ui";
 
 export default function AuditPage() {
   const [incident, setIncident] = useState("");
   const [digest, setDigest] = useState("");
   const [verdict, setVerdict] = useState<null | { ok: boolean; message: string }>(null);
-  useEffect(() => { setIncident(new URLSearchParams(window.location.search).get("incident") ?? ""); }, []);
+  // Adopt text typed before hydration, then let ?incident= pre-fill only a field that is still empty.
+  useEffect(() => {
+    const typedIncident = document.querySelector<HTMLInputElement>('input[name="incident"]')?.value ?? "";
+    const typedDigest = document.querySelector<HTMLInputElement>('input[name="digest"]')?.value ?? "";
+    const fromLink = new URLSearchParams(window.location.search).get("incident") ?? "";
+    setIncident((current) => current || typedIncident || fromLink);
+    if (typedDigest) setDigest((current) => current || typedDigest);
+  }, []);
 
-  const log = usePoll(listAudit, [], 20000);
+  const log = usePoll(listAudit, [], 30000);
   const ledger = usePoll(async () => {
     const keys = await listLedgerKeys();
-    return (await Promise.all(keys.slice(-10).reverse().map((k) => getLedgerRecord(k)))).filter(Boolean);
-  }, [], 20000);
+    return (await Promise.all(keys.slice(-6).reverse().map((k) => getLedgerRecord(k)))).filter(Boolean);
+  }, [], 30000);
   const focus = usePoll(() => (incident ? getLatestLedgerRecord(incident) : Promise.resolve(null)), [incident]);
 
   const verify = async () => {
@@ -60,7 +67,8 @@ export default function AuditPage() {
       </Panel>
 
       <Panel eyebrow="Engine audit log" title={incident ? `Incident ${incident}` : "All incidents"}>
-        {log.error && <Notice tone="rejected" title="Read failed">{log.error}</Notice>}
+        {log.error && !log.data && <Notice tone="rejected" title="Read failed">{log.error}</Notice>}
+        {log.data && <StaleNotice error={log.error} />}
         {entries.length ? (
           <ol className="divide-y divide-line" data-testid="audit-log">
             {[...entries].reverse().map((e) => {

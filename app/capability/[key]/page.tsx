@@ -6,7 +6,7 @@ import { ADDRESSES } from "@/lib/config";
 import { getCapability } from "@/lib/contracts";
 import { countdown, formatTime } from "@/lib/policy";
 import { DispatchPill, Envelope } from "@/components/domain";
-import { Hex, Kv, Notice, PageIntro, Panel, useNow, usePoll } from "@/components/ui";
+import { Hex, Kv, Notice, PageIntro, Panel, StaleNotice, useNow, usePoll } from "@/components/ui";
 import { TxStatus, useTx } from "@/components/tx";
 import { useWallet } from "@/components/WalletProvider";
 
@@ -14,11 +14,11 @@ export default function CapabilityPage() {
   const { key } = useParams<{ key: string }>();
   const now = useNow();
   const { address } = useWallet();
-  const { data: cap, error, loading, reload } = usePoll(() => getCapability(key), [key], 8000);
+  const { data: cap, error, loading, reload } = usePoll(() => getCapability(key), [key], 15000, (d) => d?.dispatch_status !== "APPLIED");
   const tx = useTx(reload);
 
   if (loading && !cap) return <p className="mono text-dim">Reading capability…</p>;
-  if (error) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
+  if (error && !cap) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
   if (!cap) {
     return <Notice tone="pending" title="No capability with this key exists on the finalized chain">
       A capability appears only after the confirming assessment is FINALIZED and the gate processes the engine’s message. If you just assessed an incident, wait and refresh.
@@ -45,6 +45,8 @@ export default function CapabilityPage() {
         {cap.dispatch_status === "ISSUED" && (expired ? <span className="mono text-xs text-rejected">expired {formatTime(cap.expires_at)}</span> : <span className="mono text-xs text-pending">expires in {countdown(cap.expires_at, now)}</span>)}
         <Link className="mono text-xs text-verified underline" href={`/incident/${cap.incident_key}`}>incident {cap.incident_key}</Link>
       </div>
+
+      <StaleNotice error={error} />
 
       <Envelope e={{ ...cap, expires_at: cap.expires_at }} digest={cap.action_digest} />
 

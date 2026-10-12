@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { Address } from "@/lib/config";
-import { errorMessage, submitWrite, waitForFinalization } from "@/lib/genlayer";
+import { clearReadCache, errorMessage, submitWrite, waitForFinalization } from "@/lib/genlayer";
 import { Hex, Notice } from "@/components/ui";
 import { useWallet } from "@/components/WalletProvider";
 
@@ -28,6 +28,7 @@ export function useTx(onFinalized?: () => void) {
       setState({ phase: "finalizing", hash });
       await waitForFinalization(hash);
       setState({ phase: "finalized", hash });
+      clearReadCache();
       onFinalized?.();
     } catch (e) {
       setState({ phase: "failed", message: errorMessage(e), hash });

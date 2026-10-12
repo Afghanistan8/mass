@@ -68,6 +68,7 @@ export const listAudit = async () =>
   strings(await readContract(ADDRESSES.massEngine, "list_audit_log")).map((s) => parse<AuditEntry>(s)).filter((e): e is AuditEntry => !!e);
 
 export const getCapability = async (key: string) => parse<Capability>(await readContract(ADDRESSES.capabilityGate, "get_capability_json", [key]));
+export const getCapabilityKeyForIncident = async (incident: string) => String((await readContract(ADDRESSES.capabilityGate, "get_capability_for_incident", [incident])) ?? "");
 export const listCapabilityKeys = async () => strings(await readContract(ADDRESSES.capabilityGate, "list_capability_keys"));
 
 export const getTargetStatus = async () => parse<TargetStatus>(await readContract(ADDRESSES.protectedTarget, "get_status_json"));

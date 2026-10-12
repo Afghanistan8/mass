@@ -56,9 +56,12 @@ async function write(client: GenLayerClient<any>, address: string, functionName:
 
 function gitCommit(): string {
   try {
-    return execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    const head = execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    const dirty = execSync("git status --porcelain -- contracts", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    // A dirty contracts/ directory means HEAD does not describe the deployed bytes; say so.
+    return dirty ? `${head}+uncommitted-contract-changes` : head;
   } catch {
-    return "uncommitted";
+    return "unknown";
   }
 }
 

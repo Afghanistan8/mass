@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { ADDRESSES } from "@/lib/config";
 import { getActiveCharterKey, getCharter } from "@/lib/contracts";
 import { countdown, formatTime } from "@/lib/policy";
-import { Hex, Kv, Notice, PageIntro, Panel, Pill, useNow, usePoll } from "@/components/ui";
+import { Hex, Kv, Notice, PageIntro, Panel, Pill, StaleNotice, useNow, usePoll } from "@/components/ui";
 import { TxStatus, useTx } from "@/components/tx";
 import { useWallet } from "@/components/WalletProvider";
 
@@ -16,19 +16,22 @@ export default function CharterPage() {
   const { data, error, loading, reload } = usePoll(async () => {
     const charter = await getCharter(key);
     const active = charter ? await getActiveCharterKey(charter.protocol_key) : "";
-    return { charter, active };
-  }, [key], 20000);
+    // To say "superseded" truthfully we need the active version: the registry rejects rollbacks to anything older.
+    const activeCharter = charter && active && active !== charter.charter_key ? await getCharter(active).catch(() => null) : null;
+    const supersededBy = charter && activeCharter && activeCharter.version > charter.version ? activeCharter.version : null;
+    return { charter, active, supersededBy };
+  }, [key], 30000, (d) => !d?.charter || (d.active !== d.charter.charter_key && d.supersededBy === null));
   const tx = useTx(reload);
 
   if (loading && !data) return <p className="mono text-dim">Reading charter…</p>;
-  if (error) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
+  if (error && !data) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
   const charter = data?.charter;
   if (!charter) return <Notice tone="rejected" title="Charter not found">{key} is not published in this registry.</Notice>;
 
   const isActive = data!.active === charter.charter_key;
   const eligible = now / 1000 >= charter.eligible_at;
   const isOwner = !!address && address.toLowerCase() === charter.owner.toLowerCase();
-  const superseded = !!data!.active && data!.active !== charter.charter_key;
+  const supersededBy = data!.supersededBy;
 
   return (
     <div className="space-y-6">
@@ -36,9 +39,14 @@ export default function CharterPage() {
         <span className="mono text-sm">{charter.charter_key}</span>
       </PageIntro>
 
+      <StaleNotice error={error} />
+
       <div className="flex flex-wrap gap-2">
-        {isActive ? <Pill tone="verified">Active</Pill> : eligible ? <Pill tone="pending">Eligible · not active</Pill> : <Pill tone="pending" pulse>Activation delay · {countdown(charter.eligible_at, now)}</Pill>}
-        {superseded && <Pill tone="neutral">Another version is active: {data!.active}</Pill>}
+        {isActive ? <Pill tone="verified">Active</Pill>
+          : supersededBy ? <Pill tone="neutral">Superseded by v{supersededBy}</Pill>
+          : eligible ? <Pill tone="pending">Eligible · not active</Pill>
+          : <Pill tone="pending" pulse>Activation delay · {countdown(charter.eligible_at, now)}</Pill>}
+        {!isActive && !supersededBy && data!.active && <Pill tone="neutral">An older version is active: {data!.active}</Pill>}
         <Pill tone="neutral">Immutable</Pill>
       </div>
 
@@ -71,7 +79,15 @@ export default function CharterPage() {
         </Panel>
       </div>
 
-      {!isActive && (
+      {supersededBy && (
+        <div data-testid="superseded-notice">
+          <Notice tone="neutral" title={`Superseded by v${supersededBy} · this version can never be activated again`}>
+            The registry rejects rollbacks to an older charter version. Incidents already frozen under this version stay bound to its digest; new incidents must use the active charter.{" "}
+            <Link className="text-verified underline" href={`/charter/${data!.active}`}>Open the active version →</Link>
+          </Notice>
+        </div>
+      )}
+      {!isActive && !supersededBy && (
         <Panel eyebrow="Activation" title="Activate this version">
           <p className="mb-4 text-sm text-dim">Only the owner can activate, only after the delay, and never to an older version. Governance over the target is re-proved on-chain at this step.</p>
           {!isOwner && address && <Notice tone="rejected" title="Connected wallet is not the charter owner" />}

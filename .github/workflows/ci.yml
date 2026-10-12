@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 24, cache: npm }
       - uses: astral-sh/setup-uv@v5
       - run: uv venv --python 3.12 .python312 && uv pip install --python .python312/bin/python -r requirements.txt
       - run: npm ci

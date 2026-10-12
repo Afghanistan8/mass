@@ -5,6 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 3101;
 
 export default defineConfig({
+  globalSetup: "./tests/e2e/warmup.ts",
   testDir: "./tests/e2e",
   timeout: 45_000,
   expect: { timeout: 10_000 },

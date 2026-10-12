@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ADDRESSES } from "@/lib/config";
 import { getCapability, getIncident, getLatestLedgerRecord, parseAssessment } from "@/lib/contracts";
-import { INCIDENT_STATUS, formatTime } from "@/lib/policy";
+import { formatTime, incidentDisplay } from "@/lib/policy";
 import { DecisionBanner, FinalityRail, SourceCard, incidentRail } from "@/components/domain";
-import { Hex, Kv, Notice, PageIntro, Panel, Pill, usePoll } from "@/components/ui";
+import { Hex, Kv, Notice, PageIntro, Panel, Pill, StaleNotice, usePoll } from "@/components/ui";
 import { TxStatus, useTx } from "@/components/tx";
 import { useWallet } from "@/components/WalletProvider";
 
@@ -14,15 +14,18 @@ export default function IncidentPage() {
   const { key } = useParams<{ key: string }>();
   const { address } = useWallet();
   const { data, error, loading, reload } = usePoll(async () => {
-    const [finalized, pending] = await Promise.all([getIncident(key), getIncident(key, true).catch(() => null)]);
+    const finalized = await getIncident(key);
     const capability = finalized?.capability_key ? await getCapability(finalized.capability_key).catch(() => null) : null;
-    const ledger = finalized ? await getLatestLedgerRecord(key).catch(() => null) : null;
-    return { finalized, pending, capability, ledger };
-  }, [key], 8000);
+    // The non-final read only matters while something is still settling; a finished incident costs no extra read.
+    const settled = !!finalized && (finalized.status === "ASSESSED_NO_AUTHORITY" || capability?.dispatch_status === "APPLIED");
+    const pending = settled || capability ? null : await getIncident(key, true).catch(() => null);
+    const ledger = finalized && finalized.assessment_count > 0 ? await getLatestLedgerRecord(key).catch(() => null) : null;
+    return { finalized, pending, capability, ledger, settled };
+  }, [key], 15000, (d) => !d || !d.settled);
   const tx = useTx(reload);
 
   if (loading && !data) return <p className="mono text-dim">Reading incident…</p>;
-  if (error) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
+  if (error && !data) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
   const incident = data?.finalized;
   const pending = data?.pending;
   if (!incident) {
@@ -34,7 +37,7 @@ export default function IncidentPage() {
   const assessment = parseAssessment(incident);
   const pendingAssessment = parseAssessment(pending ?? null);
   const awaitingFinality = !!pending && pending.assessment_count > incident.assessment_count;
-  const st = INCIDENT_STATUS[incident.status] ?? { label: incident.status, tone: "neutral" as const };
+  const st = incidentDisplay(incident.status, data!.capability);
   const isRequester = !!address && address.toLowerCase() === incident.requester.toLowerCase();
   const assessable = incident.status === "OPEN" || incident.status === "ASSESSMENT_RETRYABLE";
   const capability = data!.capability;
@@ -45,9 +48,11 @@ export default function IncidentPage() {
         Frozen {formatTime(incident.opened_at)} · assessment window closes {formatTime(incident.expires_at)}
       </PageIntro>
       <div className="flex flex-wrap items-center gap-2">
-        <Pill tone={st.tone} pulse={st.tone === "pending"}>{st.label}</Pill>
+        <Pill tone={st.tone} pulse={st.pulse}>{st.label}</Pill>
         <Pill tone="neutral">attempt {incident.assessment_count} / 3</Pill>
       </div>
+
+      <StaleNotice error={error} />
 
       <FinalityRail steps={incidentRail(incident, assessment, capability, incident.status)} />
 

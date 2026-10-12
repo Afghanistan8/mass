@@ -89,7 +89,7 @@ export function useNow(intervalMs = 1000) {
   return now;
 }
 
-export function usePoll<T>(load: () => Promise<T>, deps: unknown[], intervalMs = 0) {
+export function usePoll<T>(load: () => Promise<T>, deps: unknown[], intervalMs = 0, shouldPoll?: (data: T | null) => boolean) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -103,12 +103,44 @@ export function usePoll<T>(load: () => Promise<T>, deps: unknown[], intervalMs =
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick]);
+  // Terminal states (nothing left to wait for) stop polling, so a finished page costs no RPC budget.
+  const polling = intervalMs > 0 && (shouldPoll ? shouldPoll(data) : true);
   useEffect(() => {
-    if (!intervalMs) return;
+    if (!polling) return;
     const id = setInterval(() => setTick((t) => t + 1), intervalMs);
     return () => clearInterval(id);
-  }, [intervalMs]);
+  }, [polling, intervalMs]);
   return { data, error, loading, reload: () => setTick((t) => t + 1) };
+}
+
+/**
+ * Server-rendered controlled inputs accept typing BEFORE hydration, but React state never hears about it: the box shows the
+ * text while state is still empty, so a fast user (or a slow connection) submits an empty form. After mount, adopt what the
+ * DOM already holds. State keys must equal the controls' `name` attributes.
+ */
+export function adoptPrehydrationValues<T extends Record<string, unknown>>(form: HTMLElement | null, state: T): Partial<T> {
+  const adopted: Partial<T> = {};
+  if (!form) return adopted;
+  for (const key of Object.keys(state)) {
+    const el = form.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[name="${key}"]`);
+    if (!el) continue;
+    const current = state[key];
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+      if (typeof current === "boolean" && el.checked !== current) adopted[key as keyof T] = el.checked as T[keyof T];
+    } else if (typeof current === "number") {
+      const n = Number(el.value);
+      if (el.value !== "" && Number.isFinite(n) && n !== current) adopted[key as keyof T] = n as T[keyof T];
+    } else if (typeof current === "string" && el.value !== current) {
+      adopted[key as keyof T] = el.value as T[keyof T];
+    }
+  }
+  return adopted;
+}
+
+/** A failed refresh must not throw away data that already loaded. */
+export function StaleNotice({ error }: { error: string }) {
+  if (!error) return null;
+  return <Notice tone="pending" title="Refresh failed · showing the last data that loaded">{error}</Notice>;
 }
 
 export function NavLink({ href, children, active }: { href: string; children: ReactNode; active: boolean }) {

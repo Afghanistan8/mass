@@ -22,13 +22,16 @@ A contract cannot read a security advisory or notice that a source is trying to 
 
 Two action classes exist: `PAUSE_PROTECTED_ACTION` and `QUARANTINE_LANE` (one chartered lane).
 
-## Deployment
+## Live deployment
+
+Hosted frontend: <https://mass-iota-three.vercel.app> (`/api/build-info` reports the exact commit and deployment id).
+
 
 The live Studionet addresses, source SHA-256 values, deployer and transaction hashes are in [`deployment-manifest.public.json`](deployment-manifest.public.json). `npm run source:verify` checks the on-chain bytes against this repository.
 
 ## Quick start
 
-Requirements: Node 20+, [uv](https://docs.astral.sh/uv/), a Chromium for Playwright.
+Requirements: Node 22.18+ (24 recommended; the gate tests run TypeScript natively), [uv](https://docs.astral.sh/uv/), a Chromium for Playwright.
 
 ```bash
 uv venv --python 3.12 .python312
@@ -62,5 +65,6 @@ The script refuses any chain other than 61999. See [DEPLOYMENT_RUNBOOK.md](DEPLO
 ## Honest limits
 
 - The consensus decision is an LLM judgement; Mass constrains it (verbatim quotes, grounded clauses, tripwires, fail-closed rules) but does not make it infallible.
+- Studionet's public RPC allows 30 `gen_call` reads per minute per network address and hides its 429s from browsers. The frontend paces, caches and shares a read budget across tabs; heavy use from one address can still see short delays (the UI says so).
 - The demo target is deliberately small. It demonstrates the authority path; it is not a production protocol.
 - Studionet is a test network. Nothing here has had an external audit.

@@ -4,6 +4,7 @@ import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { ExecutionResult, TransactionHashVariant } from "genlayer-js/types";
 import { NETWORK, type Address } from "@/lib/config";
+import { createRpcGate, type CacheStore, type GateState, type WindowStore } from "@/lib/rpc-gate";
 
 type ProviderError = Error & { code?: number };
 export type InjectedProvider = {
@@ -107,26 +108,80 @@ export async function connectWallet(): Promise<Address> {
   return address as Address;
 }
 
-export async function readContract<T>(address: string, functionName: string, args: unknown[] = [], pending = false): Promise<T> {
+// Studionet allows 30 gen_call/min per IP and its 429s carry no CORS headers (browsers report "Failed to fetch").
+// Every read therefore goes through one gate: cached, de-duplicated, budgeted across tabs, backed off.
+const WINDOW_KEY = "mass:rpc-window";
+const CACHE_PREFIX = "mass:rpc-cache:";
+
+const browserWindowStore = (): WindowStore | undefined => {
+  if (typeof window === "undefined") return undefined;
+  return {
+    load: () => {
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(WINDOW_KEY) ?? "[]");
+        return Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === "number") : [];
+      } catch { return []; }
+    },
+    save: (stamps) => { try { window.localStorage.setItem(WINDOW_KEY, JSON.stringify(stamps)); } catch { /* storage may be blocked */ } },
+  };
+};
+
+const browserCacheStore = (): CacheStore | undefined => {
+  if (typeof window === "undefined") return undefined;
+  const memory = new Map<string, { t: number; v: unknown }>();
+  return {
+    get: (key) => {
+      const hit = memory.get(key);
+      if (hit) return hit;
+      try {
+        const raw = window.sessionStorage.getItem(CACHE_PREFIX + key);
+        if (!raw) return undefined;
+        const entry = JSON.parse(raw) as { t: number; v: unknown };
+        memory.set(key, entry);
+        return entry;
+      } catch { return undefined; }
+    },
+    set: (key, entry) => {
+      memory.set(key, entry);
+      try { window.sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify(entry)); } catch { /* not serialisable or storage blocked */ }
+    },
+    clear: () => {
+      memory.clear();
+      try {
+        for (const k of Object.keys(window.sessionStorage)) if (k.startsWith(CACHE_PREFIX)) window.sessionStorage.removeItem(k);
+      } catch { /* ignore */ }
+    },
+  };
+};
+
+const gate = createRpcGate({
+  budget: 22, // headroom under Studionet's 30/min for other tabs, devices on the same address, and write-side calls
+  windowMs: 60_000,
+  maxConcurrent: 3,
+  ttlFinalMs: 45_000,
+  ttlPendingMs: 15_000,
+  cooldownMs: 6_000,
+  maxAttempts: 3,
+  windowStore: browserWindowStore(),
+  cacheStore: browserCacheStore(),
+});
+
+export const clearReadCache = () => gate.clearCache();
+export const subscribeRpcState = (listener: (state: GateState) => void) => gate.subscribe(listener);
+export const getRpcState = () => gate.getState();
+
+export async function readContract<T>(address: string, functionName: string, args: unknown[] = [], pending = false, opts: { fresh?: boolean } = {}): Promise<T> {
   if (!address) throw new Error("Contract address is not configured for this deployment.");
   const m = mock();
   if (m?.readContract) return (await m.readContract(address, functionName, args, pending)) as T;
-  const client = readClient();
-  let last: unknown;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    try {
-      return (await client.readContract({
-        address: address as Address,
-        functionName,
-        args,
-        transactionHashVariant: pending ? TransactionHashVariant.LATEST_NONFINAL : TransactionHashVariant.LATEST_FINAL,
-      } as never)) as T;
-    } catch (error) {
-      last = error;
-      if (attempt < 3) await new Promise((r) => setTimeout(r, 800 * 2 ** attempt));
-    }
-  }
-  throw last instanceof Error ? last : new Error(errorMessage(last));
+  const key = [address.toLowerCase(), functionName, JSON.stringify(args), pending ? "pending" : "final"].join("|");
+  return gate.run<T>(key, pending, async () =>
+    (await readClient().readContract({
+      address: address as Address,
+      functionName,
+      args,
+      transactionHashVariant: pending ? TransactionHashVariant.LATEST_NONFINAL : TransactionHashVariant.LATEST_FINAL,
+    } as never)) as T, opts);
 }
 
 export async function submitWrite(account: Address, address: string, functionName: string, args: unknown[] = []): Promise<`0x${string}`> {

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NETWORK } from "@/lib/config";
 import { shortHex } from "@/lib/policy";
-import { NavLink, Notice } from "@/components/ui";
+import { NavLink, Notice, useNow } from "@/components/ui";
+import { getRpcState, subscribeRpcState } from "@/lib/genlayer";
+import type { GateState } from "@/lib/rpc-gate";
 import { WalletProvider, useWallet } from "@/components/WalletProvider";
 
 const NAV = [
@@ -49,6 +51,22 @@ function NetworkBanner() {
   return null;
 }
 
+// Studionet caps public reads at 30/min per address and hides its 429s from browsers. Explain pacing instead of failing.
+function RpcNotice() {
+  const [state, setState] = useState<GateState>(getRpcState());
+  useEffect(() => subscribeRpcState(setState), []);
+  const now = useNow(1000);
+  if (state.phase === "ok") return null;
+  const seconds = Math.max(0, Math.ceil((state.until - now) / 1000));
+  return (
+    <div data-testid="rpc-notice">
+      <Notice tone="pending" title={state.phase === "cooldown" ? `Studionet is rate-limiting this browser · retrying in ${seconds}s` : `Pacing Studionet reads · next read in ${seconds}s`}>
+        Studionet allows 30 public reads per minute per network address. Mass spends at most 22, caches results and stops polling finished pages, so data can appear a few seconds late. Nothing has failed.
+      </Notice>
+    </div>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "/";
   return (
@@ -63,7 +81,7 @@ function Shell({ children }: { children: ReactNode }) {
       <nav aria-label="Primary" className="-mx-3 flex overflow-x-auto border-b border-line">
         {NAV.map(([href, label]) => <NavLink key={href} href={href} active={isActive(path, href)}>{label}</NavLink>)}
       </nav>
-      <div className="mt-4 empty:hidden"><NetworkBanner /></div>
+      <div className="mt-4 space-y-3 empty:hidden"><NetworkBanner /><RpcNotice /></div>
       <main className="flex-1 py-10">{children}</main>
       <footer className="mono border-t border-line py-6 text-xs text-faint">
         Mass of evidence. Mass of consensus. Zero self-certification. · <a className="hover:text-dim" href="/api/build-info">build-info</a>

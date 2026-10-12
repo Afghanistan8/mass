@@ -65,4 +65,12 @@ Charters are immutable and versioned per protocol key. Activating v2 does not to
 
 ## Frontend
 
-Next.js App Router, TypeScript, Tailwind. It talks only to the contracts via genlayer-js 1.1.8 and an injected EIP-1193 wallet. Reads default to the latest *finalized* state; the incident page also reads non-final state to show "assessed but not final". Writes are reported complete only on `FINALIZED`. A test seam (`window.__MASS_E2E_MOCK__`) exists only when `NODE_ENV !== "production"`.
+Next.js App Router, TypeScript, Tailwind. It talks only to the contracts via genlayer-js 1.1.8 and an injected EIP-1193 wallet.
+
+**Read path.** Every read goes through `lib/rpc-gate.ts`: results are cached (45 s final, 15 s pending, mirrored to `sessionStorage`), identical in-flight reads are shared, requests spend from a budget of 22 per minute shared across tabs (`localStorage`), and rate-limit-like failures trigger a cooldown instead of an immediate retry (a retry is another counted request). Studionet's 429s carry no CORS headers, so browsers see them as "Failed to fetch"; the UI explains pacing in a banner rather than showing a raw error. Terminal pages (settled incident, applied capability, superseded charter) stop polling, and a failed refresh keeps the last good data on screen.
+
+**Finality in the UI.** Reads default to the latest *finalized* state; the incident page also reads non-final state while something is settling to show "assessed but not final". Incident status is derived from the capability once it exists (the engine cannot observe the gate finalizing, so it stores `AUTHORITY_PENDING_FINALITY` for good). Writes are reported complete only on `FINALIZED`, and the read cache is cleared then.
+
+**Forms.** Server-rendered controlled inputs accept typing before hydration, but React state never hears about it. Each form adopts the DOM's values on mount (`adoptPrehydrationValues`) before applying deep-link presets.
+
+A test seam (`window.__MASS_E2E_MOCK__`) exists only when `NODE_ENV !== "production"`.

@@ -16,8 +16,8 @@ export function GET() {
       chainId: manifest.chainId,
       rpc: manifest.rpc,
       contracts: manifest.contracts,
-      manifestRepositoryCommit: (manifest as { repositoryCommit?: string }).repositoryCommit ?? "",
-      builtAt: env.BUILD_TIME || new Date().toISOString(),
+      contractSourcesCommit: (manifest as { sourcesCommit?: string }).sourcesCommit ?? "",
+      builtAt: env.BUILD_TIME || "unknown",
     },
     { headers: { "cache-control": "no-store" } },
   );

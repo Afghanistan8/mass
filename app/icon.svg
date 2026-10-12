@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mass">
+  <rect width="64" height="64" rx="10" fill="#07090b"/>
+  <path d="M0 21.3h64M0 42.6h64M21.3 0v64M42.6 0v64" stroke="#4cd7f6" stroke-opacity=".12" stroke-width="1"/>
+  <path d="M14 47V17l18 20 18-20v30" fill="none" stroke="#4cd7f6" stroke-width="5" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

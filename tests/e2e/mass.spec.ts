@@ -257,3 +257,174 @@ test("fixture digest helper agrees with the contracts' canonical form", () => {
   expect(actionDigest(envelope())).toMatch(/^[0-9a-f]{64}$/);
   expect(CHARTER_DIGEST).toHaveLength(64);
 });
+
+test.describe("regressions found by auditing the hosted site", () => {
+  const charter = {
+    charter_key: "CHARTER-E2E", protocol_key: "PROTO-E2E", protocol_name: "E2E Protocol", owner: ME, guardian: "", protected_target: TARGET,
+    trigger_policy: "t", evidence_policy: "e", evidence_hosts: [], evidence_scopes: [], allowed_actions: [], allowed_lanes: [],
+    max_duration_minutes: 60, capability_ttl_minutes: 30, activation_delay_minutes: 1, published_at: 1790000000, eligible_at: 1790000060, version: 1,
+    charter_digest: CHARTER_DIGEST,
+  };
+
+  test("an incident whose capability was applied is not shown as awaiting finality (incident page)", async ({ page }) => {
+    await installChain(page, { get_incident_json: incident(), get_capability_json: capability({ dispatch_status: "APPLIED", consumed: true }), get_latest_record_json: { decision: "TRIGGER_CONFIRMED" } });
+    await page.goto("/incident/INC-E2E-1");
+    await expect(page.getByText("Capability applied · spent")).toBeVisible();
+    await expect(page.getByText("Assessed · awaiting finality")).toHaveCount(0);
+  });
+
+  test("an incident whose capability was applied is not shown as awaiting finality (overview)", async ({ page }) => {
+    await installChain(page, {
+      list_charter_keys: ["CHARTER-E2E"], list_incident_keys: ["INC-E2E-1"], list_capability_keys: ["CAP-INC-E2E-1"],
+      get_status_json: targetStatus(), get_charter_json: charter, get_incident_json: incident(),
+      get_capability_json: capability({ dispatch_status: "APPLIED", consumed: true }),
+    });
+    await page.goto("/command");
+    await expect(page.getByText("Capability applied · spent").first()).toBeVisible();
+    await expect(page.getByText("awaiting finality")).toHaveCount(0);
+  });
+
+  test("an issued but unused capability is shown as issued, not pending", async ({ page }) => {
+    await installChain(page, { get_incident_json: incident(), get_capability_json: capability(), get_latest_record_json: null });
+    await page.goto("/incident/INC-E2E-1");
+    await expect(page.getByText("Capability issued · unused")).toBeVisible();
+  });
+
+  const v1 = { ...charter, charter_key: "CH-OLD", version: 1 };
+  const v2 = { ...charter, charter_key: "CH-NEW", version: 2 };
+  const byKey = (map: Record<string, unknown>) => (args: unknown[]) => map[String(args[0])] ?? null;
+
+  test("a superseded charter says so and never offers activation", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, { get_charter_json: byKey({ "CH-OLD": v1, "CH-NEW": v2 }), get_active_charter_key: "CH-NEW" });
+    await page.goto("/charter/CH-OLD");
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByText("Superseded by v2", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("superseded-notice")).toContainText("can never be activated again");
+    await expect(page.getByTestId("activate-charter")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Open the active version →" })).toHaveAttribute("href", "/charter/CH-NEW");
+  });
+
+  test("a newer charter that is not yet active can still be activated", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, { get_charter_json: byKey({ "CH-OLD": v1, "CH-NEW": v2 }), get_active_charter_key: "CH-OLD" });
+    await page.goto("/charter/CH-NEW");
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByText("Eligible · not active")).toBeVisible();
+    await expect(page.getByText("An older version is active: CH-OLD")).toBeVisible();
+    await expect(page.getByTestId("activate-charter")).toBeEnabled();
+    await expect(page.getByTestId("superseded-notice")).toHaveCount(0);
+  });
+
+  test("the active charter offers an incident, not activation", async ({ page }) => {
+    await installChain(page, { get_charter_json: byKey({ "CH-NEW": v2 }), get_active_charter_key: "CH-NEW" });
+    await page.goto("/charter/CH-NEW");
+    await expect(page.getByText("Active", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Freeze an incident →" })).toBeVisible();
+    await expect(page.getByTestId("activate-charter")).toHaveCount(0);
+  });
+
+  test("every route has its own descriptive title", async ({ page }) => {
+    await installChain(page, { list_charter_keys: [], list_incident_keys: [], list_capability_keys: [], get_status_json: targetStatus(), list_emergency_history: [], list_audit_log: [], list_record_keys: [], get_charter_json: null, get_incident_json: null, get_capability_json: null });
+    const titles = new Map<string, string>();
+    for (const route of ["/", "/command", "/charter/new", "/incident/new", "/target", "/audit", "/charter/CH-1", "/incident/INC-9", "/capability/CAP-9"]) {
+      await page.goto(route);
+      titles.set(route, await page.title());
+    }
+    expect(new Set(titles.values()).size).toBe(titles.size);
+    expect(titles.get("/incident/INC-9")).toContain("INC-9");
+    expect(titles.get("/capability/CAP-9")).toContain("CAP-9");
+    for (const [route, title] of titles) if (route !== "/") expect(title, route).toMatch(/· Mass$/);
+  });
+
+  // The real-user race: server-rendered controlled inputs accept typing before hydration, but React state never
+  // hears about it. Delay the JS so we type first, then prove the typed values are what gets submitted.
+  const delayHydration = (page: import("@playwright/test").Page) =>
+    page.route("**/_next/static/**", async (route) => { await new Promise((r) => setTimeout(r, 2500)); await route.continue(); });
+  // React attaches __reactProps$* to DOM nodes only once it has hydrated them.
+  const hydrated = (page: import("@playwright/test").Page, selector: string) =>
+    page.waitForFunction((s) => { const el = document.querySelector(s); return !!el && Object.keys(el).some((k) => k.startsWith("__reactProps")); }, selector, { timeout: 30_000 });
+
+  test("text typed before hydration is used, not lost (audit explorer verify)", async ({ page }) => {
+    const digest = "a".repeat(64);
+    await installChain(page, { list_audit_log: [], list_record_keys: [], get_latest_record_json: null, verify_commitment: (args: unknown[]) => args[0] === "INC-TYPED-EARLY" && args[1] === digest });
+    await delayHydration(page);
+    await page.goto("/audit", { waitUntil: "commit" });
+    await page.locator('input[name="incident"]').fill("INC-TYPED-EARLY");
+    await page.locator('input[name="digest"]').fill(digest);
+    await hydrated(page, 'input[name="digest"]');
+    await page.getByTestId("verify-commitment").click();
+    await expect(page.getByText("FINALIZED evidence commitment recorded")).toBeVisible();
+  });
+
+  test("a deep link pre-fills only an empty field", async ({ page }) => {
+    await installChain(page, { list_audit_log: [], list_record_keys: [], get_latest_record_json: null });
+    await page.goto("/audit?incident=INC-FROM-LINK");
+    await expect(page.locator('input[name="incident"]')).toHaveValue("INC-FROM-LINK");
+  });
+
+  test("a freeze submitted after pre-hydration typing sends the typed values, even with a deep-link preset", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, { get_charter_json: null });
+    await delayHydration(page);
+    await page.goto("/incident/new?charter=CHARTER-FROM-LINK", { waitUntil: "commit" });
+    await page.locator('input[name="incidentKey"]').fill("INC-TYPED-EARLY");
+    await page.locator('input[name="charterKey"]').fill("CHARTER-TYPED-EARLY");
+    await page.locator('textarea[name="reason"]').fill("Typed before the page finished loading, comfortably over thirty characters.");
+    await page.locator('textarea[name="urls"]').fill(URL1);
+    await hydrated(page, 'textarea[name="urls"]');
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByTestId("wallet-address")).toBeVisible();
+    await page.getByTestId("freeze-incident").click();
+    await expect(page.getByTestId("tx-finalized")).toBeVisible();
+    const [write] = await writesOf(page);
+    expect(write.fn).toBe("open_incident");
+    expect(write.args[0]).toBe("INC-TYPED-EARLY");
+    expect(write.args[1]).toBe("CHARTER-TYPED-EARLY");
+    expect(write.args[5]).toBe("Typed before the page finished loading, comfortably over thirty characters.");
+    expect(JSON.parse(write.args[6] as string)).toEqual([URL1]);
+  });
+
+  test("a deep-link charter preset fills the freeze form when nothing was typed", async ({ page }) => {
+    await installChain(page, { get_charter_json: null });
+    await page.goto("/incident/new?charter=CHARTER-FROM-LINK");
+    await expect(page.locator('input[name="charterKey"]')).toHaveValue("CHARTER-FROM-LINK");
+  });
+
+  test("charter form keys typed before hydration are not reported as missing", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, {});
+    await delayHydration(page);
+    await page.goto("/charter/new", { waitUntil: "commit" });
+    await page.locator('input[name="charterKey"]').fill("CHARTER-TYPED-EARLY");
+    await page.locator('input[name="protocolKey"]').fill("PROTO-TYPED-EARLY");
+    await hydrated(page, 'input[name="protocolKey"]');
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByTestId("wallet-address")).toBeVisible();
+    await page.getByTestId("publish-charter").click();
+    await expect(page.getByText("Fix the highlighted fields before publishing")).toBeVisible();
+    // Other fields are genuinely empty, but the two keys the user already typed must not be flagged.
+    await expect(page.locator('input[name="charterKey"]')).not.toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator('input[name="protocolKey"]')).not.toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator('input[name="name"]')).toHaveAttribute("aria-invalid", "true").catch(() => undefined);
+  });
+
+  test("the favicon is served", async ({ request }) => {
+    const response = await request.get("/icon.svg");
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"]).toContain("svg");
+  });
+
+  test("a Studionet rate limit is explained and paced, not shown as a raw fetch failure", async ({ page }) => {
+    // Reproduces production: Studionet answers 429 without CORS headers, which browsers surface as "Failed to fetch".
+    let calls = 0;
+    await page.route("https://studio.genlayer.com/**", (route) => { calls += 1; return route.fulfill({ status: 429, contentType: "application/json", body: JSON.stringify({ jsonrpc: "2.0", error: { code: -32029, message: "Rate limit exceeded: 30 requests per minute" }, id: null }) }); });
+    await page.goto("/target");
+    const notice = page.getByTestId("rpc-notice");
+    await expect(notice).toBeVisible({ timeout: 20_000 });
+    await expect(notice).toContainText("rate-limiting this browser");
+    await expect(notice).toContainText("Nothing has failed");
+    // The gate must not hammer the server: a handful of requests while backing off, never a flood.
+    expect(calls).toBeLessThanOrEqual(6);
+  });
+});

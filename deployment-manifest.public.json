@@ -46,7 +46,6 @@
     "gateBindEngine": "0xe0a18ff080d06964ae47a30455954915948fdf56f398ebe51f3876ab2de84b7f",
     "ledgerBindEngine": "0x7a4f817a16d2536edcce9f012977e5a06ae74b12eeb27e7ea51b6ce8b2dc0e3a"
   },
-  "repositoryCommit": "f8500fb042201c01830cf7dacc81367c4ae3b0b9",
   "generatedAt": "2026-10-12T14:47:11.836Z",
   "status": "DEPLOYED",
   "frontend": {
@@ -83,5 +82,7 @@
         "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
       }
     }
-  ]
+  ],
+  "sourcesCommit": "488c18e53e78dfe08633b2c7b218e0b072973c7a",
+  "sourcesCommitNote": "The commit whose contract files are byte-identical to the deployed contracts (verified by SHA-256). The deploy script ran from an uncommitted working tree, so the deploy-time HEAD would be misleading."
 }

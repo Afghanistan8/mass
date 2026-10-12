@@ -35,6 +35,9 @@ node scripts/adversarial-run.mjs [--phase=A]
 - Direct Mode account objects are `bytes`; use `hx()` from the helpers. `target.address` is the checksummed deployed address.
 - Next 16 allows one `next dev` per directory: stop any preview server before `playwright test`.
 - Validator tests must give the leader's forged state `http_status: 200`, or the HTTP-class check rejects it first and the test passes for the wrong reason. Re-mutate when adding validator tests.
+- **Studionet RPC budget:** `gen_call` and `gen_getContractSchema` are limited to 30/min per IP (bucket "standard"); `eth_*` and `gen_getContractCode` to 300/min. 429s have no CORS headers, so browsers show "Failed to fetch". All app reads must go through `readContract` (the gate); never add ad-hoc retry loops or fast polling, and remember your own scripts share the IP budget.
+- Controlled inputs rendered on the server lose typed-before-hydration text from React state; new forms must call `adoptPrehydrationValues` (a unit test enforces it).
+- CSP is production-only: verify header changes with `next build && next start`, not `next dev`.
 - Studionet reads default to latest finalized; a just-written value may take tens of seconds to appear.
 
 ## Status

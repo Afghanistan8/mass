@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node scripts/py.mjs -m pytest tests/unit -q",
+    "test:unit": "node scripts/py.mjs -m pytest tests/unit -q && node --test tests/unit/rpc-gate.test.ts",
     "test:direct": "node scripts/py.mjs -m pytest tests/direct -q",
     "test:e2e": "playwright test",
     "test": "npm run test:unit && npm run test:direct",
@@ -36,5 +36,7 @@
     "tailwindcss": "4.1.11",
     "typescript": "5.7.2"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=22.18"
+  }
 }

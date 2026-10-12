@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ACTION_CLASSES, ADDRESSES } from "@/lib/config";
 import { getCharter } from "@/lib/contracts";
 import { ACTION_COPY, validateEvidenceUrl } from "@/lib/policy";
-import { Field, Notice, PageIntro, Panel } from "@/components/ui";
+import { Field, Notice, PageIntro, Panel, adoptPrehydrationValues } from "@/components/ui";
 import { TxStatus, useTx } from "@/components/tx";
 
 const slug = (v: string) => /^[A-Za-z0-9._:-]{4,96}$/.test(v);
@@ -17,9 +17,14 @@ export default function NewIncident() {
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
   const tx = useTx();
 
+  const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     const preset = new URLSearchParams(window.location.search).get("charter");
-    if (preset) setF((s) => ({ ...s, charterKey: preset }));
+    // 1) adopt anything typed before hydration, 2) only then let a deep link fill a field that is still empty.
+    setF((s) => {
+      const merged = { ...s, ...adoptPrehydrationValues(formRef.current, s) };
+      return preset && !merged.charterKey ? { ...merged, charterKey: preset } : merged;
+    });
   }, []);
 
   useEffect(() => {
@@ -67,7 +72,7 @@ export default function NewIncident() {
       <PageIntro eyebrow="Incident · freeze" title="Freeze the exact request.">
         Freezing binds the action, scope, duration and evidence URLs to the charter digest. Your reason is recorded as an <em>assertion</em>: validators are told it is not evidence.
       </PageIntro>
-      <form className="grid gap-5 lg:grid-cols-2" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label="Freeze incident">
+      <form ref={formRef} className="grid gap-5 lg:grid-cols-2" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label="Freeze incident">
         <Panel eyebrow="Binding" title="Charter & request">
           <div className="space-y-4">
             <Field label="Incident key" error={show("incidentKey")}><input className="field" aria-invalid={!!show("incidentKey")} value={f.incidentKey} onChange={(e) => set("incidentKey", e.target.value)} name="incidentKey" /></Field>

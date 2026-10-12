@@ -4,18 +4,18 @@ import { useState } from "react";
 import { ADDRESSES } from "@/lib/config";
 import { getTargetStatus, listEmergencyHistory } from "@/lib/contracts";
 import { countdown, formatTime } from "@/lib/policy";
-import { Field, Hex, Kv, Notice, PageIntro, Panel, Pill, useNow, usePoll } from "@/components/ui";
+import { Field, Hex, Kv, Notice, PageIntro, Panel, Pill, StaleNotice, useNow, usePoll } from "@/components/ui";
 import { TxStatus, useTx } from "@/components/tx";
 
 export default function TargetPage() {
   const now = useNow();
-  const { data, error, loading, reload } = usePoll(async () => ({ status: await getTargetStatus(), history: await listEmergencyHistory() }), [], 10000);
+  const { data, error, loading, reload } = usePoll(async () => ({ status: await getTargetStatus(), history: await listEmergencyHistory() }), [], 20000);
   const [lane, setLane] = useState("swaps");
   const [actionKey, setActionKey] = useState("");
   const tx = useTx(reload);
 
   if (loading && !data) return <p className="mono text-dim">Reading target…</p>;
-  if (error) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
+  if (error && !data) return <Notice tone="rejected" title="Read failed">{error}</Notice>;
   const s = data?.status;
   if (!s) return <Notice tone="rejected" title="Target status unavailable" />;
 
@@ -27,6 +27,8 @@ export default function TargetPage() {
       <PageIntro eyebrow="Protected target" title="The consequence surface.">
         No admin. No owner pause. No custody. The only way to restrict this contract is a finalized, digest-bound capability delivered by the gate.
       </PageIntro>
+
+      <StaleNotice error={error} />
 
       <Panel tone={paused ? "pending" : "verified"} eyebrow="Pause state" title={paused ? "Protected actions are PAUSED" : "Protected actions are OPEN"}>
         {paused ? (
