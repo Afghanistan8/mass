@@ -92,5 +92,7 @@
         "evidenceLedger": "0xD3aaaA0e85c2E5E7bB52ff40400D8f85D9A2B63F"
       }
     }
-  ]
+  ],
+  "sourcesCommit": "1b1fd86bdcc31df166b6debcde13a89da113f7e2",
+  "sourcesCommitNote": "The commit whose contract files are byte-identical to the deployed contracts (verified by SHA-256). The deploy script ran from an uncommitted working tree, so the deploy-time HEAD would be misleading."
 }
