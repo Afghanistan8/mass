@@ -21,7 +21,7 @@ export const envelope = (over: Record<string, unknown> = {}) => ({
 
 export const sourceState = (over: Record<string, unknown> = {}) => ({
   url: URL1, state: "SUPPORTS_TRIGGER", finding: "Advisory confirms the exploit.", quote: "Confirmed active exploit draining the bridge",
-  http_status: 200, content_digest: "c".repeat(64), raw_digest: "d".repeat(64), injection_flagged: false, ...over,
+  http_status: 200, content_digest: "c".repeat(64), raw_digest: "d".repeat(64), injection_flagged: false, complete: true, text_chars: 320, ...over,
 });
 
 export const assessment = (over: Record<string, unknown> = {}) => ({
@@ -44,7 +44,7 @@ export const capability = (over: Record<string, unknown> = {}) => ({
   capability_key: "CAP-INC-E2E-1", incident_key: "INC-E2E-1", holder: ME, guardian: "", guardian_approved: false, target: TARGET,
   action_class: "PAUSE_PROTECTED_ACTION", scope: "*", duration_minutes: 20, action_digest: actionDigest(envelope()),
   charter_digest: CHARTER_DIGEST, assessment_digest: "9".repeat(64), issuer: "0x0b60b320066dd972547a6c233e67b99dff522d04",
-  issued_at: 1790000100, expires_at: 4102444800, dispatch_status: "ISSUED", dispatch_count: 0, consumed: false, ...over,
+  issued_at: 1790000100, expires_at: 4102444800, dispatch_status: "ISSUED", dispatch_count: 0, max_dispatches: 3, consumed: false, ...over,
 });
 
 export const targetStatus = (over: Record<string, unknown> = {}) => ({

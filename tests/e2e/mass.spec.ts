@@ -428,3 +428,63 @@ test.describe("regressions found by auditing the hosted site", () => {
     expect(calls).toBeLessThanOrEqual(6);
   });
 });
+
+test.describe("steward review round 1: bounded recovery and evidence completeness", () => {
+  const past = Math.floor(Date.now() / 1000) - 120;
+
+  test("an expired, never-applied capability can never act again", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, { get_capability_json: capability({ dispatch_status: "EXPIRED", stored_status: "DISPATCHED", dispatch_count: 1, expires_at: past }) });
+    await page.goto("/capability/CAP-INC-E2E-1");
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByTestId("capability-expired")).toContainText("never applied it before the authority deadline");
+    await expect(page.getByTestId("capability-expired")).toContainText("new incident and a new finalized assessment");
+    await expect(page.getByTestId("execute-capability")).toHaveCount(0);
+    await expect(page.getByTestId("reconcile-capability")).toBeVisible();
+  });
+
+  test("a dispatched capability shows bounded recovery inside its window", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, { get_capability_json: capability({ dispatch_status: "DISPATCHED", dispatch_count: 1 }) }, { delayMs: 300 });
+    await page.goto("/capability/CAP-INC-E2E-1");
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByTestId("recovery-info")).toContainText("2 recovery dispatch(es) left");
+    await expect(page.getByTestId("execute-capability")).toHaveText("Re-dispatch (exact recovery)");
+    await expect(page.getByTestId("execute-capability")).toBeEnabled();
+    await page.getByTestId("execute-capability").click();
+    const [write] = await writesOf(page);
+    expect(write.args).toEqual(["CAP-INC-E2E-1", TARGET, "PAUSE_PROTECTED_ACTION", "*", 20]);
+  });
+
+  test("the retry limit disables recovery", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, { get_capability_json: capability({ dispatch_status: "DISPATCHED", dispatch_count: 3 }) });
+    await page.goto("/capability/CAP-INC-E2E-1");
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByTestId("recovery-info")).toContainText("0 recovery dispatch(es) left");
+    await expect(page.getByTestId("execute-capability")).toBeDisabled();
+  });
+
+  test("a deadline that passed on the client clock is treated as expired even before the chain says so", async ({ page }) => {
+    await installWallet(page);
+    await installChain(page, { get_capability_json: capability({ dispatch_status: "DISPATCHED", dispatch_count: 1, expires_at: past }) });
+    await page.goto("/capability/CAP-INC-E2E-1");
+    await page.getByTestId("connect-wallet").click();
+    await expect(page.getByTestId("capability-expired")).toBeVisible();
+    await expect(page.getByTestId("execute-capability")).toHaveCount(0);
+  });
+
+  test("source cards say whether validators read each source in full", async ({ page }) => {
+    const a = assessment({ decision: "INSUFFICIENT_EVIDENCE", source_states: [sourceState(), sourceState({ url: "https://example.com/long", state: "NEUTRAL", quote: "", complete: false, text_chars: 18452 })] });
+    await installChain(page, { get_incident_json: incident({ status: "ASSESSMENT_RETRYABLE", capability_key: "" }, a), get_capability_json: null, get_latest_record_json: null });
+    await page.goto("/incident/INC-E2E-1");
+    await expect(page.getByText("Read in full · 320 chars")).toBeVisible();
+    await expect(page.getByText("Too long to read in full · cannot support")).toBeVisible();
+  });
+
+  test("an incident whose capability expired unused says so", async ({ page }) => {
+    await installChain(page, { get_incident_json: incident(), get_capability_json: capability({ dispatch_status: "EXPIRED", dispatch_count: 1, expires_at: past }), get_latest_record_json: null });
+    await page.goto("/incident/INC-E2E-1");
+    await expect(page.getByText("Capability expired · never applied")).toBeVisible();
+  });
+});

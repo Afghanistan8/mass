@@ -140,30 +140,37 @@ def test_applied_capability_cannot_be_replayed(direct_vm, direct_deploy, direct_
     assert len(chain.posts) == 1
 
 
-def test_dispatched_but_unapplied_capability_allows_exact_recovery_only(direct_vm, direct_deploy, direct_alice, direct_bob):
+def test_dispatched_but_unapplied_capability_allows_exact_recovery_inside_its_window_only(direct_vm, direct_deploy, direct_alice, direct_bob):
+    # Replaces the pre-review test that allowed recovery AFTER expiry (steward finding, round 1).
     direct_vm.warp("2026-09-27T20:00:00Z")
     gate, chain = make(direct_vm, direct_deploy, direct_alice, direct_bob)
-    issue(gate, direct_vm, direct_bob, direct_alice)
+    issue(gate, direct_vm, direct_bob, direct_alice)  # ttl 1800s
     chain.set_view(TARGET, "get_applied_capability_digest", "")
     direct_vm.sender = direct_alice
     gate.execute_capability("CAP-INC-0001", TARGET, "PAUSE_PROTECTED_ACTION", "*", 30)
-    direct_vm.warp("2026-09-27T23:00:00Z")  # past expiry: recovery still possible, mutation never
+    direct_vm.warp("2026-09-27T20:20:00Z")  # inside the window: exact recovery allowed
     gate.execute_capability("CAP-INC-0001", TARGET, "PAUSE_PROTECTED_ACTION", "*", 30)
     assert json.loads(gate.get_capability_json("CAP-INC-0001"))["dispatch_count"] == 2
     with direct_vm.expect_revert("duration does not match capability"):
         gate.execute_capability("CAP-INC-0001", TARGET, "PAUSE_PROTECTED_ACTION", "*", 31)
     assert gate.reconcile_capability("CAP-INC-0001") == "DISPATCHED"
+    direct_vm.warp("2026-09-27T23:00:00Z")  # past the deadline: no recovery, renewed authorization required
+    with direct_vm.expect_revert("capability expired: renewed emergency authorization is required"):
+        gate.execute_capability("CAP-INC-0001", TARGET, "PAUSE_PROTECTED_ACTION", "*", 30)
+    assert gate.reconcile_capability("CAP-INC-0001") == "EXPIRED"
+    assert len(chain.posts) == 2
 
 
 def test_expiry_blocks_first_dispatch(direct_vm, direct_deploy, direct_alice, direct_bob):
     direct_vm.warp("2026-09-27T20:00:00Z")
-    gate, _ = make(direct_vm, direct_deploy, direct_alice, direct_bob)
+    gate, chain = make(direct_vm, direct_deploy, direct_alice, direct_bob)
     issue(gate, direct_vm, direct_bob, direct_alice, ttl=600)
     direct_vm.warp("2026-09-27T20:10:01Z")
     direct_vm.sender = direct_alice
-    with direct_vm.expect_revert("capability expired"):
+    with direct_vm.expect_revert("capability expired: renewed emergency authorization is required"):
         gate.execute_capability("CAP-INC-0001", TARGET, "PAUSE_PROTECTED_ACTION", "*", 30)
-    assert gate.reconcile_capability("CAP-INC-0001") == "ISSUED"
+    assert gate.reconcile_capability("CAP-INC-0001") == "EXPIRED"
+    assert chain.posts == []
 
 
 def test_guardian_approval_is_required_and_role_separated(direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie):

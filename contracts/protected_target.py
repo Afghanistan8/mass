@@ -14,6 +14,8 @@ ACTION_CLASSES = (
 
 MAX_DURATION_CEILING = 1440
 LANE_PATTERN = r"[a-z0-9][a-z0-9_-]{1,31}"
+# The gate's longest possible capability TTL. A deadline further out than this is refused outright.
+MAX_CAPABILITY_LIFETIME_SECONDS = 7200
 
 
 def _now() -> int:
@@ -110,6 +112,16 @@ class ProtectedTarget(gl.Contract):
         if expected != action_digest:
             raise gl.vm.UserError("action digest does not bind this target")
 
+    def _require_authority_window(self, valid_until: int) -> None:
+        # Delivery is asynchronous (emit on finalized). A message that arrives after the capability's authority
+        # deadline must not take effect, however it got delayed.
+        now = _now()
+        deadline = int(valid_until)
+        if now > deadline:
+            raise gl.vm.UserError("capability authority window has expired")
+        if deadline - now > MAX_CAPABILITY_LIFETIME_SECONDS:
+            raise gl.vm.UserError("authority deadline exceeds the maximum capability lifetime")
+
     def _already_applied(self, capability_key: str, action_digest: str) -> bool:
         existing = self.applied_digests.get(capability_key, "")
         if not existing:
@@ -118,7 +130,7 @@ class ProtectedTarget(gl.Contract):
             raise gl.vm.UserError("capability key is already bound to a different action")
         return True
 
-    def _record(self, action_class, scope, duration_minutes, incident_key, capability_key, action_digest, until_ts) -> None:
+    def _record(self, action_class, scope, duration_minutes, incident_key, capability_key, action_digest, until_ts, valid_until) -> None:
         encoded = json.dumps(
             {
                 "action_class": action_class,
@@ -129,6 +141,7 @@ class ProtectedTarget(gl.Contract):
                 "action_digest": action_digest,
                 "executed_at": _now(),
                 "effective_until": int(until_ts),
+                "valid_until": int(valid_until),
             },
             sort_keys=True,
         )
@@ -181,16 +194,19 @@ class ProtectedTarget(gl.Contract):
         capability_key: str,
         action_digest: str,
         holder: str,
+        valid_until: int,
     ) -> int:
         self._require_envelope(
             incident_key, charter_digest, "PAUSE_PROTECTED_ACTION", "*", duration_minutes, action_digest, holder
         )
+        # A replay of an applied capability is a no-op (no extension, no new history), even after the deadline.
         if self._already_applied(capability_key, action_digest):
             return int(self.applied_until.get(capability_key, u256(0)))
+        self._require_authority_window(valid_until)
         until_ts = _now() + int(duration_minutes) * 60
         if until_ts > int(self.paused_until):
             self.paused_until = u256(until_ts)
-        self._record("PAUSE_PROTECTED_ACTION", "*", duration_minutes, incident_key, capability_key, action_digest, until_ts)
+        self._record("PAUSE_PROTECTED_ACTION", "*", duration_minutes, incident_key, capability_key, action_digest, until_ts, valid_until)
         return until_ts
 
     @gl.public.write
@@ -203,6 +219,7 @@ class ProtectedTarget(gl.Contract):
         capability_key: str,
         action_digest: str,
         holder: str,
+        valid_until: int,
     ) -> int:
         if not re.fullmatch(LANE_PATTERN, str(lane)):
             raise gl.vm.UserError("invalid lane identifier")
@@ -211,12 +228,13 @@ class ProtectedTarget(gl.Contract):
         )
         if self._already_applied(capability_key, action_digest):
             return int(self.applied_until.get(capability_key, u256(0)))
+        self._require_authority_window(valid_until)
         until_ts = _now() + int(duration_minutes) * 60
         if lane not in self.lane_paused_until:
             self.lane_keys.append(lane)
         if until_ts > int(self.lane_paused_until.get(lane, u256(0))):
             self.lane_paused_until[lane] = u256(until_ts)
-        self._record("QUARANTINE_LANE", lane, duration_minutes, incident_key, capability_key, action_digest, until_ts)
+        self._record("QUARANTINE_LANE", lane, duration_minutes, incident_key, capability_key, action_digest, until_ts, valid_until)
         return until_ts
 
     # ------------------------------------------------------------------ views

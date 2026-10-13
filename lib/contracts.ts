@@ -15,6 +15,7 @@ export type Charter = {
 export type SourceState = {
   url: string; state: "SUPPORTS_TRIGGER" | "CONTRADICTS_TRIGGER" | "NEUTRAL" | "UNAVAILABLE";
   finding: string; quote: string; http_status: number; content_digest: string; raw_digest: string; injection_flagged: boolean;
+  complete: boolean; text_chars: number;
 };
 
 export type Assessment = {
@@ -35,7 +36,8 @@ export type Capability = {
   capability_key: string; incident_key: string; holder: string; guardian: string; guardian_approved: boolean;
   target: string; action_class: string; scope: string; duration_minutes: number; action_digest: string;
   charter_digest: string; assessment_digest: string; issuer: string; issued_at: number; expires_at: number;
-  dispatch_status: "ISSUED" | "DISPATCHED" | "APPLIED"; dispatch_count: number; consumed: boolean;
+  dispatch_status: "ISSUED" | "DISPATCHED" | "APPLIED" | "EXPIRED"; dispatch_count: number; consumed: boolean;
+  max_dispatches?: number; last_dispatched_at?: number; expired_at?: number; stored_status?: string;
 };
 
 export type TargetStatus = {
@@ -46,7 +48,7 @@ export type TargetStatus = {
 export type LedgerRecord = {
   incident_key: string; attempt: number; charter_digest: string; decision: string; assessment_digest: string;
   evidence_commitment_digest: string; summary: string; recorded_at: number;
-  commitments: { url: string; state: string; http_status: number; content_digest: string; raw_digest: string }[];
+  commitments: { url: string; state: string; http_status: number; content_digest: string; raw_digest: string; complete?: boolean; text_chars?: number }[];
 };
 
 export type AuditEntry = { seq: number; at: number; kind: string; incident_key: string; actor: string; data: Record<string, unknown> };

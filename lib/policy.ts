@@ -13,7 +13,7 @@ export const DECISIONS: Record<string, { label: string; tone: Tone; grants: bool
   },
   INSUFFICIENT_EVIDENCE: {
     label: "Insufficient evidence", tone: "rejected", grants: false,
-    meaning: "Sources were unavailable, too weak, or support was not backed by a verifiable quote. Uncertainty fails closed. The incident may be re-assessed up to three times.",
+    meaning: "Sources were unavailable, too weak, too long for validators to read in full, or support was not backed by a verifiable quote. Uncertainty fails closed. The incident may be re-assessed up to three times.",
   },
   ACTION_DISPROPORTIONATE: {
     label: "Action disproportionate", tone: "rejected", grants: false,
@@ -48,6 +48,7 @@ export function incidentDisplay(status: string, capability?: { dispatch_status: 
   if (status === "AUTHORITY_PENDING_FINALITY" && capability) {
     if (capability.dispatch_status === "APPLIED") return { label: "Capability applied · spent", tone: "neutral", pulse: false };
     if (capability.dispatch_status === "DISPATCHED") return { label: "Capability dispatched · awaiting finality", tone: "pending", pulse: true };
+    if (capability.dispatch_status === "EXPIRED") return { label: "Capability expired · never applied", tone: "rejected", pulse: false };
     return { label: "Capability issued · unused", tone: "verified", pulse: false };
   }
   const base = INCIDENT_STATUS[status] ?? { label: status, tone: "neutral" as Tone };
@@ -65,6 +66,7 @@ export const DISPATCH: Record<string, { label: string; tone: Tone }> = {
   ISSUED: { label: "Issued · unused", tone: "verified" },
   DISPATCHED: { label: "Dispatched · awaiting finality", tone: "pending" },
   APPLIED: { label: "Applied · spent", tone: "neutral" },
+  EXPIRED: { label: "Expired · renewed authorization required", tone: "rejected" },
 };
 
 export const ACTION_COPY: Record<string, string> = {

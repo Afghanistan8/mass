@@ -1,6 +1,6 @@
 import json
 
-from tests.direct.helpers import CHARTER_DIGEST, action_digest, hx
+from tests.direct.helpers import CHARTER_DIGEST, action_digest, deadline, hx
 
 
 def deploy_target(vm, deploy, governance, gate):
@@ -12,7 +12,7 @@ def deploy_target(vm, deploy, governance, gate):
 def pause(target, vm, gate, governance, minutes=30, cap="CAP-INC-0001", inc="INC-0001", digest=None, holder=None):
     vm.sender = gate
     digest = digest or action_digest(inc, CHARTER_DIGEST, target.address, minutes=minutes)
-    return target.emergency_pause(minutes, inc, CHARTER_DIGEST, cap, digest, holder or hx(governance))
+    return target.emergency_pause(minutes, inc, CHARTER_DIGEST, cap, digest, holder or hx(governance), deadline(vm))
 
 
 def test_only_gate_can_apply_emergency_methods(direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie):
@@ -20,10 +20,10 @@ def test_only_gate_can_apply_emergency_methods(direct_vm, direct_deploy, direct_
     direct_vm.sender = direct_alice  # even governance has no direct path
     digest = action_digest("INC-0001", CHARTER_DIGEST, target.address)
     with direct_vm.expect_revert("emergency authority requires CapabilityGate"):
-        target.emergency_pause(30, "INC-0001", CHARTER_DIGEST, "CAP-INC-0001", digest, hx(direct_alice))
+        target.emergency_pause(30, "INC-0001", CHARTER_DIGEST, "CAP-INC-0001", digest, hx(direct_alice), deadline(direct_vm))
     direct_vm.sender = direct_charlie
     with direct_vm.expect_revert("emergency authority requires CapabilityGate"):
-        target.emergency_quarantine_lane("swaps", 30, "INC-0001", CHARTER_DIGEST, "CAP-INC-0001", digest, hx(direct_alice))
+        target.emergency_quarantine_lane("swaps", 30, "INC-0001", CHARTER_DIGEST, "CAP-INC-0001", digest, hx(direct_alice), deadline(direct_vm))
 
 
 def test_no_admin_pause_surface_exists(direct_vm, direct_deploy, direct_alice, direct_bob):
@@ -100,7 +100,7 @@ def test_lane_quarantine_blocks_only_that_lane(direct_vm, direct_deploy, direct_
     target = deploy_target(direct_vm, direct_deploy, direct_alice, direct_bob)
     direct_vm.sender = direct_bob
     digest = action_digest("INC-0002", CHARTER_DIGEST, target.address, "QUARANTINE_LANE", "bridge", 20)
-    target.emergency_quarantine_lane("bridge", 20, "INC-0002", CHARTER_DIGEST, "CAP-INC-0002", digest, hx(direct_alice))
+    target.emergency_quarantine_lane("bridge", 20, "INC-0002", CHARTER_DIGEST, "CAP-INC-0002", digest, hx(direct_alice), deadline(direct_vm))
     direct_vm.sender = direct_alice
     direct_vm.origin = direct_alice
     with direct_vm.expect_revert("lane is temporarily quarantined"):
@@ -116,9 +116,9 @@ def test_lane_scope_is_digest_bound(direct_vm, direct_deploy, direct_alice, dire
     direct_vm.sender = direct_bob
     digest = action_digest("INC-0002", CHARTER_DIGEST, target.address, "QUARANTINE_LANE", "bridge", 20)
     with direct_vm.expect_revert("action digest does not bind this target"):
-        target.emergency_quarantine_lane("swaps", 20, "INC-0002", CHARTER_DIGEST, "CAP-INC-0002", digest, hx(direct_alice))
+        target.emergency_quarantine_lane("swaps", 20, "INC-0002", CHARTER_DIGEST, "CAP-INC-0002", digest, hx(direct_alice), deadline(direct_vm))
     with direct_vm.expect_revert("invalid lane identifier"):
-        target.emergency_quarantine_lane("Bad Lane", 20, "INC-0002", CHARTER_DIGEST, "CAP-INC-0002", digest, hx(direct_alice))
+        target.emergency_quarantine_lane("Bad Lane", 20, "INC-0002", CHARTER_DIGEST, "CAP-INC-0002", digest, hx(direct_alice), deadline(direct_vm))
 
 
 def test_replayed_protected_action_key_is_rejected(direct_vm, direct_deploy, direct_alice, direct_bob):

@@ -36,6 +36,22 @@ It signs with the CLI's active unlocked account (repo-local CLI 0.39.1), reads a
 
 A step whose result differs from the expectation is printed as `FAIL` and makes the script exit non-zero. If step D2 does not return `TRIGGER_CONFIRMED`, the script reports it rather than hiding it; consensus over live web evidence is probabilistic and a run should be repeated and the outcome recorded as observed.
 
+## Steward demonstration (review round 1)
+
+```bash
+node scripts/steward-demo.mjs     # ≈ 30–45 min; writes docs/live-runs/steward-<RUN>.{md,json}
+```
+
+Every write is waited to **FINALIZED** and recorded with its GenVM outcome (`return` / `rollback` + message), consensus, the child transactions it triggered, and an explorer link; state is read back from the latest FINALIZED state.
+
+| Phase | Shows |
+|---|---|
+| QG | `QUARANTINE_LANE` behind a guardian: execute before approval and holder-as-guardian both revert; the guardian (a throwaway in-memory key) approves; the delivery quarantines only the chartered lane; protected actions blocked there and allowed elsewhere; replay rejected |
+| R | delayed delivery: a dispatch inside the window whose delivery lands after the deadline is refused by the target; nothing recorded; recovery after the deadline rejected twice; expiry persisted |
+| X | replaying the applied quarantine after its deadline is rejected and does not extend it |
+
+Latest result: [`steward-MV6KHJ3C`](live-runs/steward-MV6KHJ3C.md) — 39/39 passed. See also [STEWARD_RESPONSE.md](STEWARD_RESPONSE.md).
+
 ## Manual UI walk-through
 
 1. `/charter/new` — publish; `/charter/<key>` — wait for the delay, activate.

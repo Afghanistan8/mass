@@ -1,6 +1,7 @@
 # Review target
 
 **Submission:** Mass, a GenLayer-native emergency-authority system, Smart Contract / dApp category.
+**Steward review round 1:** every requested change is answered point by point, with tests and finalized live transactions, in [docs/STEWARD_RESPONSE.md](docs/STEWARD_RESPONSE.md).
 **Network:** Studionet 61999. **Addresses and source hashes:** [deployment-manifest.public.json](deployment-manifest.public.json).
 
 ## What a reviewer should try to break
@@ -17,7 +18,7 @@ Every item has a Direct Mode negative test, and the first three, the fifth and p
 ## Fast path for a steward
 
 ```bash
-npm run toolchain:check && npm run contracts:check && npm test      # pins, lint+validate, 41 unit + 91 Direct Mode
+npm run toolchain:check && npm run contracts:check && npm test      # pins, lint+validate, 62 + 11 unit, 108 Direct Mode
 npm run source:verify && npm run health:check                        # live: bytes on chain == this repo; wiring
 node scripts/adversarial-run.mjs --phase=A                           # live negatives, ~5 minutes
 ```
@@ -39,7 +40,7 @@ EXIGENT ([Bibidee/exigency](https://github.com/Bibidee/exigency)) is the baselin
 | **Evidence provenance** | Digests inside the incident record | Normalised and raw digests per source plus an aggregate commitment, queryable and verifiable on a finalized ledger; the UI has a commitment verifier |
 | **Charter migration** | Frozen digest check | Same, plus explicit tests that rotation leaves open incidents bound to the original digest and superseded charters cannot open new ones |
 | **UX of finality** | Status labels | Four-step authority rail; finalized vs pending reads shown side by side; writes complete only on `FINALIZED`; capability digest recomputed in the browser with a loud mismatch state |
-| **Tests (counted in each repo)** | 14 unit, 29 Direct Mode, 7 Playwright, 3 integration | 41 unit, 91 Direct Mode, 22 Playwright, plus a live adversarial script |
+| **Tests (counted in each repo)** | 14 unit, 29 Direct Mode, 7 Playwright, 3 integration | 73 unit (62 Python + 11 TypeScript), 108 Direct Mode, 42 Playwright, plus a live adversarial script |
 | **Test quality** | — | Key checks were mutation-tested: disabling them makes a test fail (two tests that initially passed for the wrong reason were found and fixed) |
 | **Live-run findings** | — | The live run exposed a CLI-vs-browser argument-decoding gap (`b''`) that Direct Mode could not; fixed, regression-tested and redeployed |
 

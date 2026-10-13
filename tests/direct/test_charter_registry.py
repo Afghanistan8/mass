@@ -181,3 +181,12 @@ def test_cli_integer_zero_guardian_fails_closed(direct_vm, direct_deploy, direct
     with direct_vm.expect_revert():
         publish(reg, direct_bob, guardian=0)
     assert reg.list_charter_keys() == []
+
+
+def test_guardian_decoded_by_the_cli_as_an_address_object_is_accepted(direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie):
+    """The CLI decodes any 40-hex argument into an Address object; the live guardian demo depends on this path."""
+    reg, _ = make(direct_vm, direct_deploy, direct_alice, direct_bob)
+    from genlayer.py.types import Address
+
+    publish(reg, direct_bob, guardian=Address(hx(direct_charlie)))
+    assert json.loads(reg.get_charter_json("CHARTER-0001"))["guardian"] == hx(direct_charlie)

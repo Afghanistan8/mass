@@ -135,7 +135,7 @@ if (!RESUME) {
 
 // ---------------------------------------------------------------- Phase A: nothing can be forced
 console.log("== A. Unauthorized attempts (each must revert) ==");
-await write("A1 deployer cannot pause the target directly", C.protectedTarget, "emergency_pause", [20, "INC-FORGED", "a".repeat(64), "CAP-FORGED", "b".repeat(64), governance], { expect: "revert", status: "ACCEPTED", message: "emergency authority requires CapabilityGate" });
+await write("A1 deployer cannot pause the target directly", C.protectedTarget, "emergency_pause", [20, "INC-FORGED", "a".repeat(64), "CAP-FORGED", "b".repeat(64), governance, Math.floor(Date.now() / 1000) + 600], { expect: "revert", status: "ACCEPTED", message: "emergency authority requires CapabilityGate" });
 await write("A2 deployer cannot mint a capability directly", C.capabilityGate, "issue_capability", ["CAP-X", "X", governance, NONE, C.protectedTarget, "PAUSE_PROTECTED_ACTION", "*", 20, "a".repeat(64), "b".repeat(64), "c".repeat(64), 1800], { expect: "revert", status: "ACCEPTED", message: "only bound MassEngine may issue capabilities" });
 await write("A3 gate engine binding is one-time", C.capabilityGate, "bind_engine", [governance], { expect: "revert", status: "ACCEPTED", message: "engine already bound" });
 await write("A4 ledger accepts writes only from the engine", C.evidenceLedger, "record_assessment", ["INC-F", 1, "a".repeat(64), "TRIGGER_CONFIRMED", "b".repeat(64), "c".repeat(64), "forged", "[]"], { expect: "revert", status: "ACCEPTED", message: "only bound MassEngine may record assessments" });

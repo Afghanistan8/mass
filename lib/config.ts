@@ -36,4 +36,4 @@ export const ACTION_CLASSES = ["PAUSE_PROTECTED_ACTION", "QUARANTINE_LANE"] as c
 export type ActionClass = (typeof ACTION_CLASSES)[number];
 
 export const explorerAddress = (address: string) => `${NETWORK.explorer}/address/${address}`;
-export const explorerTx = (hash: string) => `${NETWORK.explorer}/transactions/${hash}`;
+export const explorerTx = (hash: string) => `${NETWORK.explorer}/tx/${hash}`;

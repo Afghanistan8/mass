@@ -14,6 +14,10 @@ ACTION_CLASSES = (
 
 MAX_DURATION_CEILING = 1440
 LANE_PATTERN = r"[a-z0-9][a-z0-9_-]{1,31}"
+# Recovery is bounded twice over: at most this many dispatches, and never after the authority deadline.
+MAX_DISPATCHES = 3
+EXPIRED_MESSAGE = "capability expired: renewed emergency authorization is required"
+RETRY_LIMIT_MESSAGE = "dispatch retry limit reached: renewed emergency authorization is required"
 
 
 def _now() -> int:
@@ -69,6 +73,18 @@ class CapabilityGate(gl.Contract):
         if not raw:
             raise gl.vm.UserError("capability not found")
         return json.loads(raw)
+
+    def _effective_status(self, record: dict, capability_key: str) -> str:
+        """The capability's real state. expires_at is ONE hard authority deadline for approval, first dispatch,
+        every recovery re-dispatch and the target's application. Applied inside the window wins over expiry."""
+        status = str(record.get("dispatch_status", "ISSUED"))
+        if status not in ("ISSUED", "DISPATCHED"):
+            return status
+        if status == "DISPATCHED" and self._applied_on_target(record, capability_key):
+            return "APPLIED"
+        if _now() > int(record["expires_at"]):
+            return "EXPIRED"
+        return status
 
     def _applied_on_target(self, record: dict, capability_key: str) -> bool:
         try:
@@ -154,6 +170,7 @@ class CapabilityGate(gl.Contract):
             "expires_at": issued_at + int(ttl_seconds),
             "dispatch_status": "ISSUED",
             "dispatch_count": 0,
+            "max_dispatches": MAX_DISPATCHES,
             "consumed": False,
             "consumed_at": 0,
         }
@@ -192,15 +209,15 @@ class CapabilityGate(gl.Contract):
         record = self._load(capability_key)
         if _address_hex(gl.message.sender_address) != str(record["holder"]):
             raise gl.vm.UserError("only capability holder may execute")
-        status = str(record.get("dispatch_status", "ISSUED"))
+        status = self._effective_status(record, capability_key)
         if status == "APPLIED":
             raise gl.vm.UserError("capability already applied")
-        if status == "DISPATCHED" and self._applied_on_target(record, capability_key):
-            raise gl.vm.UserError("capability already applied")
-        # Expiry gates only the first dispatch; recovery re-dispatch can never
-        # change the bound action because the envelope is re-verified below.
-        if status == "ISSUED" and _now() > int(record["expires_at"]):
-            raise gl.vm.UserError("capability expired")
+        # Recovery (re-dispatching a delivery that never applied) is allowed only inside the authority window and
+        # only a bounded number of times; afterwards a new incident must win a new finalized assessment.
+        if status == "EXPIRED":
+            raise gl.vm.UserError(EXPIRED_MESSAGE)
+        if int(record.get("dispatch_count", 0)) >= MAX_DISPATCHES:
+            raise gl.vm.UserError(RETRY_LIMIT_MESSAGE)
         if record.get("guardian") and not record.get("guardian_approved"):
             raise gl.vm.UserError("guardian approval required")
 
@@ -222,7 +239,10 @@ class CapabilityGate(gl.Contract):
         record["dispatch_status"] = "DISPATCHED"
         record["dispatch_count"] = int(record.get("dispatch_count", 0)) + 1
         record["dispatched_at"] = record.get("dispatched_at") or _now()
+        record["last_dispatched_at"] = _now()
         self.capabilities[capability_key] = json.dumps(record, sort_keys=True)
+        # The target independently refuses to apply after this deadline (covers delayed delivery).
+        valid_until = int(record["expires_at"])
 
         protected = gl.get_contract_at(Address(target_hex))
         if action_class == "PAUSE_PROTECTED_ACTION":
@@ -233,6 +253,7 @@ class CapabilityGate(gl.Contract):
                 capability_key,
                 str(record["action_digest"]),
                 str(record["holder"]),
+                valid_until,
             )
         elif action_class == "QUARANTINE_LANE":
             protected.emit(on="finalized").emergency_quarantine_lane(
@@ -243,6 +264,7 @@ class CapabilityGate(gl.Contract):
                 capability_key,
                 str(record["action_digest"]),
                 str(record["holder"]),
+                valid_until,
             )
         else:
             raise gl.vm.UserError("unsupported action class")
@@ -253,16 +275,17 @@ class CapabilityGate(gl.Contract):
         record = self._load(capability_key)
         if _address_hex(gl.message.sender_address) != str(record["holder"]):
             raise gl.vm.UserError("only capability holder may reconcile")
-        status = str(record.get("dispatch_status", "ISSUED"))
-        if status != "DISPATCHED":
-            return status
-        if self._applied_on_target(record, capability_key):
-            record["dispatch_status"] = "APPLIED"
-            record["consumed"] = True
-            record["consumed_at"] = _now()
+        stored = str(record.get("dispatch_status", "ISSUED"))
+        effective = self._effective_status(record, capability_key)
+        if effective != stored:
+            record["dispatch_status"] = effective
+            if effective == "APPLIED":
+                record["consumed"] = True
+                record["consumed_at"] = _now()
+            elif effective == "EXPIRED":
+                record["expired_at"] = _now()
             self.capabilities[capability_key] = json.dumps(record, sort_keys=True)
-            return "APPLIED"
-        return "DISPATCHED"
+        return effective
 
     # --------------------------------------------------------------- views
     @gl.public.view
@@ -271,8 +294,9 @@ class CapabilityGate(gl.Contract):
         if not raw:
             return ""
         record = json.loads(raw)
-        if record.get("dispatch_status") == "DISPATCHED" and self._applied_on_target(record, capability_key):
-            record["dispatch_status"] = "APPLIED"
+        record["stored_status"] = str(record.get("dispatch_status", "ISSUED"))
+        record["dispatch_status"] = self._effective_status(record, capability_key)
+        if record["dispatch_status"] == "APPLIED":
             record["consumed"] = True
         return json.dumps(record, sort_keys=True)
 

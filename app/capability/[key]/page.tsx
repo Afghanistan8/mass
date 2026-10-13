@@ -14,7 +14,7 @@ export default function CapabilityPage() {
   const { key } = useParams<{ key: string }>();
   const now = useNow();
   const { address } = useWallet();
-  const { data: cap, error, loading, reload } = usePoll(() => getCapability(key), [key], 15000, (d) => d?.dispatch_status !== "APPLIED");
+  const { data: cap, error, loading, reload } = usePoll(() => getCapability(key), [key], 15000, (d) => d?.dispatch_status !== "APPLIED" && d?.dispatch_status !== "EXPIRED");
   const tx = useTx(reload);
 
   if (loading && !cap) return <p className="mono text-dim">Reading capability…</p>;
@@ -28,11 +28,14 @@ export default function CapabilityPage() {
   const me = address.toLowerCase();
   const isHolder = me === cap.holder.toLowerCase();
   const isGuardian = !!cap.guardian && me === cap.guardian.toLowerCase();
-  const expired = now / 1000 > cap.expires_at;
+  // One hard deadline (contract-enforced): nothing may happen after expires_at, first dispatch or recovery alike.
+  const expired = cap.dispatch_status === "EXPIRED" || now / 1000 > cap.expires_at;
+  const maxDispatches = cap.max_dispatches ?? 3;
+  const retriesLeft = Math.max(0, maxDispatches - cap.dispatch_count);
   const needsGuardian = !!cap.guardian && !cap.guardian_approved;
   const spent = cap.dispatch_status === "APPLIED";
   const canFirstExecute = cap.dispatch_status === "ISSUED" && !expired && !needsGuardian && isHolder;
-  const canRecover = cap.dispatch_status === "DISPATCHED" && isHolder;
+  const canRecover = cap.dispatch_status === "DISPATCHED" && !expired && retriesLeft > 0 && isHolder;
   const envelope = [cap.action_class, cap.scope, String(cap.duration_minutes), cap.target];
 
   return (
@@ -42,7 +45,7 @@ export default function CapabilityPage() {
       </PageIntro>
       <div className="flex flex-wrap items-center gap-2">
         <DispatchPill status={cap.dispatch_status} />
-        {cap.dispatch_status === "ISSUED" && (expired ? <span className="mono text-xs text-rejected">expired {formatTime(cap.expires_at)}</span> : <span className="mono text-xs text-pending">expires in {countdown(cap.expires_at, now)}</span>)}
+        {(cap.dispatch_status === "ISSUED" || cap.dispatch_status === "DISPATCHED") && (expired ? <span className="mono text-xs text-rejected">expired {formatTime(cap.expires_at)}</span> : <span className="mono text-xs text-pending">expires in {countdown(cap.expires_at, now)}</span>)}
         <Link className="mono text-xs text-verified underline" href={`/incident/${cap.incident_key}`}>incident {cap.incident_key}</Link>
       </div>
 
@@ -56,7 +59,7 @@ export default function CapabilityPage() {
             <Kv k="Issuer (engine)"><Hex value={cap.issuer} full /></Kv>
             <Kv k="Assessment digest">{cap.assessment_digest}</Kv>
             <Kv k="Issued">{formatTime(cap.issued_at)}</Kv>
-            <Kv k="Dispatches">{cap.dispatch_count}</Kv>
+            <Kv k="Dispatches">{cap.dispatch_count} of at most {maxDispatches}</Kv>
           </dl>
         </Panel>
         <Panel eyebrow="Role separation" title="Guardian co-signature">
@@ -73,12 +76,32 @@ export default function CapabilityPage() {
       </div>
 
       <Panel eyebrow="Execute" title="Apply the bound action" tone={spent ? "neutral" as never : "verified"}>
-        {spent ? <Notice tone="verified" title="Applied · spent">The target applied this capability. Replay is rejected by the gate and by the target.</Notice> : (
+        {spent ? <Notice tone="verified" title="Applied · spent">The target applied this capability. Replay is rejected by the gate and by the target.</Notice>
+        : expired ? (
+          <div data-testid="capability-expired">
+            <Notice tone="rejected" title="Expired · this capability can never act again">
+              {cap.dispatch_count > 0
+                ? `It was dispatched ${cap.dispatch_count} time(s) but the target never applied it before the authority deadline (${formatTime(cap.expires_at)}). The target also refuses any late delivery.`
+                : `It was never used before its authority deadline (${formatTime(cap.expires_at)}).`}{" "}
+              Renewed emergency authority needs a new incident and a new finalized assessment.
+            </Notice>
+            {cap.stored_status !== "EXPIRED" && isHolder && (
+              <button className="btn btn-quiet mt-4" disabled={tx.busy || !!tx.blocked} data-testid="reconcile-capability" onClick={() => void tx.run(ADDRESSES.capabilityGate, "reconcile_capability", [cap.capability_key])}>Record expiry on-chain</button>
+            )}
+            <div className="mt-3"><TxStatus state={tx.state} /></div>
+          </div>
+        ) : (
           <>
             <ul className="mono mb-4 space-y-1 text-xs text-dim"><li>• envelope: {envelope.join(" · ")}</li><li>• the gate recomputes the digest; the target recomputes it again against its own address</li><li>• execution is emitted on=&quot;finalized&quot;; “dispatched” is not “applied”</li></ul>
             {!isHolder && address && <Notice tone="rejected" title="Only the bound holder can execute this capability" />}
             {needsGuardian && <Notice tone="pending" title="Guardian approval required before execution" />}
-            {expired && cap.dispatch_status === "ISSUED" && <Notice tone="rejected" title="Capability expired before first use" />}
+            {cap.dispatch_status === "DISPATCHED" && (
+              <div data-testid="recovery-info">
+                <Notice tone="pending" title={`Dispatched · not yet applied · ${retriesLeft} recovery dispatch(es) left`}>
+                  If delivery to the target failed, the holder may re-send the exact same action until {formatTime(cap.expires_at)}. After that, or after {maxDispatches} dispatches, it expires for good.
+                </Notice>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-3">
               <button className="btn" disabled={!(canFirstExecute || canRecover) || tx.busy || !!tx.blocked} data-testid="execute-capability"
                 onClick={() => void tx.run(ADDRESSES.capabilityGate, "execute_capability", [cap.capability_key, cap.target, cap.action_class, cap.scope, cap.duration_minutes])}>

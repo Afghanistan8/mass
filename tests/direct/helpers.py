@@ -70,3 +70,10 @@ def action_digest(incident_key, charter_digest, target, action_class="PAUSE_PROT
 
 CHARTER_DIGEST = "b" * 64
 ASSESSMENT_DIGEST = "c" * 64
+
+
+def deadline(vm, seconds: int = 600) -> int:
+    """An authority deadline `seconds` after the Direct Mode VM's current clock."""
+    from datetime import datetime
+
+    return int(datetime.fromisoformat(str(vm._datetime).replace("Z", "+00:00")).timestamp()) + seconds

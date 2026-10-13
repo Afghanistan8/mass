@@ -7,11 +7,11 @@
   "deployer": "0x4184bc5E5444F250767E8D33A49817A9B4FB0df3",
   "genvmRunner": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
   "contracts": {
-    "charterRegistry": "0xfC8EaFe8a95Fa24a8b96531322db2D0B960c4386",
-    "massEngine": "0xfa40EE2856151d8193cf1e1bB93EB2cDA34A269b",
-    "capabilityGate": "0xF4Abb78B911505F762eB4C331577032CF0ae6C54",
-    "protectedTarget": "0x19d36019F8906d5F9c3de6E7d44453AD5164D04E",
-    "evidenceLedger": "0xD3aaaA0e85c2E5E7bB52ff40400D8f85D9A2B63F"
+    "charterRegistry": "0xf32Ee8ce88A85108E521CEE342E4F0820ca34240",
+    "massEngine": "0x4339f56a03963B8cAF9Ff6a1D83C3FC932e5d90c",
+    "capabilityGate": "0x962F5713E45E4595d6B23D1BA699D0d3bc3FE5Dc",
+    "protectedTarget": "0x6b286EaD0BA56623f68094249fe09E7F1AC3534D",
+    "evidenceLedger": "0x3dEeE6210EF78733419390F6012e4E0b6F48aD88"
   },
   "sources": {
     "charterRegistry": {
@@ -20,15 +20,15 @@
     },
     "massEngine": {
       "path": "contracts/mass_engine.py",
-      "sha256": "582d2f922208663c1a7a46103556f17f4f3677e27c0ca8c4fe6a7b832d77cc86"
+      "sha256": "d947d65b6f6ca1a7e8e57150b852e632676ea2f6116c4a5b434a63347c3ebe6d"
     },
     "capabilityGate": {
       "path": "contracts/capability_gate.py",
-      "sha256": "21449014bb032abc71d70348c217262cf444e1d79e78982533af462a0ad85c06"
+      "sha256": "6c1f0fe32e99afb27053202745f9cd8d22f49e06340128044fbb9a7a7e307534"
     },
     "protectedTarget": {
       "path": "contracts/protected_target.py",
-      "sha256": "469861bc6417c1580d5ed72ab7b80bc7b70a69e3dea371aa6eba59de4150c4a9"
+      "sha256": "765be7b8d6f56aa687c04212ebd1d882d43ad4a461d35e7a27900951dd7e515d"
     },
     "evidenceLedger": {
       "path": "contracts/evidence_ledger.py",
@@ -36,17 +36,17 @@
     }
   },
   "deploymentTransactions": {
-    "evidenceLedger": "0x9d518ee2e50c2f8267f93192b1db63d36065a4aa211f35c55ba46a31455649cd",
-    "capabilityGate": "0xfa5398ed59465131e5922f9e58809ef3456275e6ab4c0c34c91d9cdb4df1385b",
-    "charterRegistry": "0xaee8933e9838f8530821437eceafc3511220d29a8a817df08819a8bcbcd5beac",
-    "massEngine": "0xd746814198e13f481aef30e04c71f4284fd329e6229d4258f76e9a61767429a6",
-    "protectedTarget": "0x9a2acca2fe8ebc23e94dd96cf3c184a823f1a367a434b7c7d28035b4927a5f00"
+    "evidenceLedger": "0x6caa4bb8d3c14ed37dc2cc9acc9b8275693d35a30e608789969d11658256b209",
+    "capabilityGate": "0xecc6357327dd80b208a25f507224b64e394d7960eecad21b6d03efac1a307a80",
+    "charterRegistry": "0xc39aeaebf78c3b0bc92f90d5d68d47c75e5b2e896ef2d6d6c962a2446af9f43f",
+    "massEngine": "0x58c2561c03f970747d451292649c70ac192385d6892b426cf5bb19cd808f70fd",
+    "protectedTarget": "0x5e7d17fbab1b71a1e53abea94a454a2dc7a5bffc7cf245c93ffabc0b62547134"
   },
   "bindTransactions": {
-    "gateBindEngine": "0xe0a18ff080d06964ae47a30455954915948fdf56f398ebe51f3876ab2de84b7f",
-    "ledgerBindEngine": "0x7a4f817a16d2536edcce9f012977e5a06ae74b12eeb27e7ea51b6ce8b2dc0e3a"
+    "gateBindEngine": "0xdbab04543e0278e51290c95376d1a86cb091ba9a5d82ca0fc2a4a34160db4e4c",
+    "ledgerBindEngine": "0x1b48892c69a0ccbd54185c429124c662b1c5931b55fafdc7ce78fa755c990057"
   },
-  "generatedAt": "2026-10-12T14:47:11.836Z",
+  "generatedAt": "2026-10-13T10:56:18.228Z",
   "status": "DEPLOYED",
   "frontend": {
     "sourceCommit": ""
@@ -81,8 +81,16 @@
         "protectedTarget": "0xb9a64476961378485c4ba429f10Ce7990cdb313f",
         "evidenceLedger": "0x74B57d0A4E353ff1Cc337AAf2FfBFF3D47F6FA88"
       }
+    },
+    {
+      "reason": "fourth deployment: capability recovery not bounded by expiry, target accepted late deliveries, validators did not require identical evidence fingerprints, long sources were excerpted (steward review round 1)",
+      "contracts": {
+        "charterRegistry": "0xfC8EaFe8a95Fa24a8b96531322db2D0B960c4386",
+        "massEngine": "0xfa40EE2856151d8193cf1e1bB93EB2cDA34A269b",
+        "capabilityGate": "0xF4Abb78B911505F762eB4C331577032CF0ae6C54",
+        "protectedTarget": "0x19d36019F8906d5F9c3de6E7d44453AD5164D04E",
+        "evidenceLedger": "0xD3aaaA0e85c2E5E7bB52ff40400D8f85D9A2B63F"
+      }
     }
-  ],
-  "sourcesCommit": "488c18e53e78dfe08633b2c7b218e0b072973c7a",
-  "sourcesCommitNote": "The commit whose contract files are byte-identical to the deployed contracts (verified by SHA-256). The deploy script ran from an uncommitted working tree, so the deploy-time HEAD would be misleading."
+  ]
 }

@@ -38,6 +38,8 @@ node scripts/adversarial-run.mjs [--phase=A]
 - **Studionet RPC budget:** `gen_call` and `gen_getContractSchema` are limited to 30/min per IP (bucket "standard"); `eth_*` and `gen_getContractCode` to 300/min. 429s have no CORS headers, so browsers show "Failed to fetch". All app reads must go through `readContract` (the gate); never add ad-hoc retry loops or fast polling, and remember your own scripts share the IP budget.
 - Controlled inputs rendered on the server lose typed-before-hydration text from React state; new forms must call `adoptPrehydrationValues` (a unit test enforces it).
 - CSP is production-only: verify header changes with `next build && next start`, not `next dev`.
+- `genlayer deploy` runs EVERY `.ts`/`.js` in `deploy/`, and a crashed run leaves `deploy/deployScript.compiled.js` behind, so the next run deploys twice. It is git-ignored; delete it before redeploying. The deploy script retries transport errors (Studionet RPC timeouts happen).
+- Capabilities have ONE hard deadline (`expires_at`) for approval, dispatch, recovery and the target's application; the target refuses late deliveries. Live tests that need a late delivery dispatch ~half the measured delivery latency (~35 s) before the deadline (see `scripts/steward-demo.mjs`).
 - Studionet reads default to latest finalized; a just-written value may take tens of seconds to appear.
 
 ## Status

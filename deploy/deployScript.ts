@@ -20,14 +20,30 @@ const sourcePath = (file: string) => path.resolve(process.cwd(), "contracts", fi
 const sourceBytes = (file: string) => new Uint8Array(readFileSync(sourcePath(file)));
 const sha256 = (file: string) => createHash("sha256").update(readFileSync(sourcePath(file))).digest("hex");
 
+// Transport failures on the public RPC (timeouts, resets) are retried; contract results never are.
+async function retryTransport<T>(fn: () => Promise<T>, tries = 8): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < tries; i += 1) {
+    try { return await fn(); } catch (error) {
+      last = error;
+      const message = String((error as Error)?.message ?? error);
+      if (!/fetch failed|timeout|ECONNRESET|ETIMEDOUT|ENOTFOUND|socket|network|Unknown RPC error/i.test(message)) throw error;
+      const firstLine = message.split(/\r?\n/)[0].slice(0, 80);
+      console.log(`[retry] transport error (${firstLine}), attempt ${i + 1}/${tries}`);
+      await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 async function waitFinal(client: GenLayerClient<any>, hash: TransactionHash) {
-  const receipt: any = await client.waitForTransactionReceipt({
+  const receipt: any = await retryTransport(() => client.waitForTransactionReceipt({
     hash,
     status: "FINALIZED",
     retries: 360,
     interval: 5000,
     fullTransaction: true,
-  } as any);
+  } as any));
   const leader = receipt?.consensus_data?.leader_receipt?.find((e: any) => e?.execution_result)?.execution_result;
   const result = receipt?.txExecutionResultName ?? (leader === "SUCCESS" ? "FINISHED_WITH_RETURN" : leader === "ERROR" ? "FINISHED_WITH_ERROR" : undefined);
   if (result !== "FINISHED_WITH_RETURN") {

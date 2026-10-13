@@ -61,6 +61,9 @@ export function SourceCard({ s }: { s: SourceState }) {
         <Pill tone={meta.tone}>{meta.label}</Pill>
         <Pill tone={s.http_status >= 200 && s.http_status < 300 ? "verified" : "rejected"}>HTTP {s.http_status || "—"}</Pill>
         {s.injection_flagged && <Pill tone="rejected">Injection tripwire</Pill>}
+        {s.http_status >= 200 && s.http_status < 300 && (s.complete
+          ? <Pill tone="verified">Read in full · {s.text_chars} chars</Pill>
+          : <Pill tone="rejected">Too long to read in full · cannot support</Pill>)}
       </div>
       <p className="mono mt-2 break-all text-sm"><a className="text-verified underline decoration-verified/40" href={s.url} target="_blank" rel="noreferrer">{s.url}</a></p>
       {s.finding && <p className="mt-2 text-sm text-dim">{s.finding}</p>}
@@ -91,7 +94,7 @@ export function Envelope({ e, digest }: { e: { target: string; action_class: str
         <Kv k="Target"><Hex value={e.target} full /></Kv>
         {e.holder && <Kv k="Holder"><Hex value={e.holder} full /></Kv>}
         {e.guardian ? <Kv k="Guardian co-sign"><Hex value={e.guardian} full /></Kv> : <Kv k="Guardian co-sign">none chartered</Kv>}
-        {e.expires_at ? <Kv k="Issuance expiry">{formatTime(e.expires_at)}</Kv> : null}
+        {e.expires_at ? <Kv k="Authority deadline">{formatTime(e.expires_at)} · approval, dispatch, every recovery and the target's application must all happen before it</Kv> : null}
         <Kv k="Charter digest"><span title={e.charter_digest}>{e.charter_digest}</span></Kv>
         <Kv k="Action digest">{digest}</Kv>
         <Kv k="Recomputed here">

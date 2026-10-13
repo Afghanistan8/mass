@@ -6,13 +6,13 @@ Only results that were actually observed are listed. Live results reference Stud
 
 | Contract | Address |
 |---|---|
-| CharterRegistry | `0xfC8EaFe8a95Fa24a8b96531322db2D0B960c4386` |
-| MassEngine | `0xfa40EE2856151d8193cf1e1bB93EB2cDA34A269b` |
-| CapabilityGate | `0xF4Abb78B911505F762eB4C331577032CF0ae6C54` |
-| ProtectedTarget | `0x19d36019F8906d5F9c3de6E7d44453AD5164D04E` |
-| EvidenceLedger | `0xD3aaaA0e85c2E5E7bB52ff40400D8f85D9A2B63F` |
+| CharterRegistry | `0xf32Ee8ce88A85108E521CEE342E4F0820ca34240` |
+| MassEngine | `0x4339f56a03963B8cAF9Ff6a1D83C3FC932e5d90c` |
+| CapabilityGate | `0x962F5713E45E4595d6B23D1BA699D0d3bc3FE5Dc` |
+| ProtectedTarget | `0x6b286EaD0BA56623f68094249fe09E7F1AC3534D` |
+| EvidenceLedger | `0x3dEeE6210EF78733419390F6012e4E0b6F48aD88` |
 
-Deployer / target governance: `0x4184bc5E5444F250767E8D33A49817A9B4FB0df3`. Three earlier stacks are listed under `supersededDeployments` in the manifest, each with the reason it was retired; do not use them.
+Deployer / target governance: `0x4184bc5E5444F250767E8D33A49817A9B4FB0df3`. Four earlier stacks are listed under `supersededDeployments` in the manifest, each with the reason it was retired; do not use them. This stack answers steward review round 1 (bounded recovery, target-side deadline, validator fingerprint equality, full-read evidence); the previous stack's live run `MV5D9JSD` below remains the evidence trail for the pre-steward code.
 
 - `npm run source:verify`: all five contracts' on-chain bytes are **exactly equal** to the repository files and to the manifest SHA-256.
 - `npm run health:check`: RPC reachable; gate and ledger bound to the engine; engine bindings match; target gate matches; target governance equals the deployer.
@@ -23,12 +23,12 @@ Deployer / target governance: `0x4184bc5E5444F250767E8D33A49817A9B4FB0df3`. Thre
 |---|---|
 | `toolchain:check` | CLI 0.39.1 (repo-local), genlayer-js 1.1.8, Python 3.12.13, genvm-linter 0.11.0 |
 | `contracts:check` | 5/5 compile, lint and validate (GenVM v0.2.16 runner `py-genlayer:1jb45aa8…`) |
-| Unit (`tests/unit`) | 41 passed |
-| Direct Mode (`tests/direct`) | 91 passed |
+| Unit (`tests/unit`) | 62 Python passed + 11 TypeScript passed |
+| Direct Mode (`tests/direct`) | 108 passed (incl. 16 steward round-1 tests) |
 | `typecheck`, `build` | clean |
-| Playwright (`tests/e2e`) | 22 passed |
+| Playwright (`tests/e2e`) | 42 passed (incl. 6 steward round-1 UI tests) |
 
-Mutation checks: disabling (one at a time) leader-side quote verification, validator-side quote verification, clause grounding, per-source state comparison, the forced tamper decision, the validators' tripwire shortcut, and the target's digest check each makes a specific test fail.
+Mutation checks: disabling (one at a time) leader-side quote verification, validator-side quote verification, clause grounding, per-source state comparison, the forced tamper decision, the validators' tripwire shortcut, and the target's digest check each makes a specific test fail. For the steward changes: disabling the gate's `EXPIRED` guard makes `test_recovery_redispatch_after_the_authority_deadline_is_rejected` fail (the re-dispatch succeeds instead of reverting — re-verified while preparing the resubmission); source-level invariant tests pin the retry cap, the `valid_until` handoff, the target's deadline check order, the validator fingerprint comparison, and the no-excerpt rule.
 
 ## Live adversarial run `MV5D9JSD` — ALL EXPECTATIONS MET
 
@@ -45,6 +45,18 @@ Deployment above, evidence served from `raw.githubusercontent.com/Afghanistan8/m
 | F — v2 published and activated; rollback to v1 rejected; new incident on superseded v1 rejected; frozen incident keeps the v1 digest | pass |
 
 Earlier runs on superseded deployments (`MV5B3PVS`, `MV5CCPP0`) are kept in `docs/` as the evidence trail for the findings below.
+
+## Live steward demonstration `steward-MV6KHJ3C` — ALL EXPECTATIONS MET
+
+Deployment above (the steward round-1 stack), evidence served from `raw.githubusercontent.com/Afghanistan8/mass/main/demo/evidence/` as in `MV5D9JSD`. Full record: `docs/live-runs/steward-MV6KHJ3C.md` (39 of 39 checks) and `docs/live-runs/steward-MV6KHJ3C.json` (39 steps, 0 failures, 15 authoritative FINALIZED state readbacks). Reproduce: `node scripts/steward-demo.mjs` (≈ 30–45 min). Point-by-point answers are in `docs/STEWARD_RESPONSE.md`.
+
+| Phase | Observed |
+|---|---|
+| QG — `QUARANTINE_LANE` behind an optional guardian | execute before approval reverted (`guardian approval required`); holder approving reverted (`only the guardian may approve`); throwaway guardian key approved; dispatch delivered; lane `bridge` quarantined 20 min (`is_lane_open(bridge) = false`, `swaps` open, global pause unchanged); protected action blocked in `bridge`, allowed in `swaps`; reconcile `APPLIED`; replay rejected |
+| R — delayed cross-contract delivery vs the authority deadline | 5-min TTL capability dispatched 15 s before its deadline; delivery landed 22 s late and the target refused it (`capability authority window has expired`); nothing recorded (empty digest, no history); gate view `EXPIRED` while storage still `DISPATCHED`; two recovery re-dispatches after the deadline both rejected (`capability expired: renewed emergency authorization is required`); reconcile persisted `EXPIRED` |
+| X — already-applied authority | replaying the applied quarantine after its deadline rejected (`capability already applied`); lane `until` not extended; still exactly one history entry |
+
+Both live confirmations reached `MAJORITY_AGREE` under the strengthened validator rule (identical normalised fingerprints, full reads), so the validators independently produced identical content digests for the published advisory.
 
 ## Findings fixed because of live runs
 

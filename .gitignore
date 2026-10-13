@@ -15,3 +15,4 @@ deployment-manifest.generated.json
 *.tsbuildinfo
 .claude/
 next-env.d.ts
+deploy/*.compiled.js
